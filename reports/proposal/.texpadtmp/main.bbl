@@ -1,0 +1,32 @@
+\begin{thebibliography}{4}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Pham et~al.(2018)Pham, Guan, Zoph, Le, and Dean]{pham2018efficient}
+Hieu Pham, Melody~Y Guan, Barret Zoph, Quoc~V Le, and Jeff Dean.
+\newblock Efficient neural architecture search via parameter sharing.
+\newblock \emph{arXiv preprint arXiv:1802.03268}, 2018.
+
+\bibitem[Zoph and {Le Google Brain}()]{Zoph}
+Barret Zoph and Quoc~V {Le Google Brain}.
+\newblock {NEURAL ARCHITECTURE SEARCH WITH REINFORCEMENT LEARNING}.
+\newblock Technical report.
+\newblock URL \url{https://arxiv.org/pdf/1611.01578.pdf}.
+
+\bibitem[Maclaurin et~al.(2015)Maclaurin, Duvenaud, and
+  Adams]{maclaurin2015gradient}
+Dougal Maclaurin, David Duvenaud, and Ryan Adams.
+\newblock Gradient-based hyperparameter optimization through reversible
+  learning.
+\newblock In \emph{International Conference on Machine Learning}, pages
+  2113--2122, 2015.
+
+\bibitem[Pedregosa(2016)]{pedregosa2016hyperparameter}
+Fabian Pedregosa.
+\newblock Hyperparameter optimization with approximate gradient.
+\newblock \emph{arXiv preprint arXiv:1602.02355}, 2016.
+
+\end{thebibliography}

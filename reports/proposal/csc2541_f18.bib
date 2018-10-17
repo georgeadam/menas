@@ -1,0 +1,148 @@
+@article{pham2018efficient,
+  title={Efficient Neural Architecture Search via Parameter Sharing},
+  author={Pham, Hieu and Guan, Melody Y and Zoph, Barret and Le, Quoc V and Dean, Jeff},
+  journal={arXiv preprint arXiv:1802.03268},
+  year={2018}
+}
+
+@article{pedregosa2016hyperparameter,
+  title={Hyperparameter optimization with approximate gradient},
+  author={Pedregosa, Fabian},
+  journal={arXiv preprint arXiv:1602.02355},
+  year={2016}
+}
+
+@inproceedings{maclaurin2015gradient,
+  title={Gradient-based hyperparameter optimization through reversible learning},
+  author={Maclaurin, Dougal and Duvenaud, David and Adams, Ryan},
+  booktitle={International Conference on Machine Learning},
+  pages={2113--2122},
+  year={2015}
+}
+
+@ARTICLE{Figueredo:2009dg,
+   author = {Figueredo, A.~J. and Wolf, P. S.~A.},
+   title = {Assortative pairing and life history strategy -- a cross-cultural study},
+   journal = {Human Nature},
+   volume = {20},
+   pages = {317-330},
+   year = {2009},
+   doi={https://doi.org/10.1007/s12110-009-9068-2}
+}
+
+@MISC{Hao:gidmaps:2014,
+  author = {Hao, Z. and AghaKouchak, A. and Nakhjiri, N. and Farahmand, A},
+  year = {2014},
+  title = {Global integrated drought monitoring and prediction system ({GIDMaPS}) data sets},
+  howpublished = {\emph{figshare} \url{http://dx.doi.org/10.6084/m9.figshare.853801}}
+}
+
+@article{Santurkar,
+abstract = {Batch Normalization (BatchNorm) is a widely adopted technique that enables faster and more stable training of deep neural networks (DNNs). Despite its pervasiveness, the exact reasons for BatchNorm's effectiveness are still poorly understood. The popular belief is that this effectiveness stems from controlling the change of the layers' input distributions during training to reduce the so-called " internal covariate shift " . In this work, we demonstrate that such distributional stability of layer inputs has little to do with the success of BatchNorm. Instead, we uncover a more fundamental impact of BatchNorm on the training process: it makes the optimization landscape significantly smoother. This smoothness induces a more predictive and stable behavior of the gradients, allowing for faster training. These findings bring us closer to a true understanding of our DNN training toolkit.},
+author = {Santurkar, Shibani and Tsipras, Dimitris and Ilyas, Andrew and adry Mit},
+file = {:home/alex/.local/share/data/Mendeley Ltd./Mendeley Desktop/Downloaded/Santurkar et al. - Unknown - How Does Batch Normalization Help Optimization.pdf:pdf},
+mendeley-groups = {ML},
+title = {{How Does Batch Normalization Help Optimization}},
+url = {https://arxiv.org/pdf/1805.11604v1.pdf}
+}
+
+@article{Ruder2016,
+abstract = {Gradient descent optimization algorithms, while increasingly popular, are often used as black-box optimizers, as practical explanations of their strengths and weaknesses are hard to come by. This article aims to provide the reader with intuitions with regard to the behaviour of different algorithms that will allow her to put them to use. In the course of this overview, we look at different variants of gradient descent, summarize challenges, introduce the most common optimization algorithms, review architectures in a parallel and distributed setting, and investigate additional strategies for optimizing gradient descent.},
+archivePrefix = {arXiv},
+arxivId = {1609.04747},
+author = {Ruder, Sebastian},
+eprint = {1609.04747},
+mendeley-groups = {CSC2541 Project},
+month = {sep},
+title = {{An overview of gradient descent optimization algorithms}},
+url = {http://arxiv.org/abs/1609.04747},
+year = {2016}
+}
+
+@techreport{Li,
+abstract = {Algorithm design is a laborious process and often requires many iterations of ideation and validation. In this paper, we explore automating algorithm design and present a method to learn an optimization algorithm, which we believe to be the first method that can automatically discover a better algorithm. We approach this problem from a reinforcement learning perspective and represent any particular optimization algorithm as a policy. We learn an optimization algorithm using guided policy search and demonstrate that the resulting algorithm outperforms existing hand-engineered algorithms in terms of convergence speed and/or the final objective value.},
+archivePrefix = {arXiv},
+arxivId = {1606.01885v1},
+author = {Li, Ke and Malik, Jitendra},
+eprint = {1606.01885v1},
+file = {:home/alex/.local/share/data/Mendeley Ltd./Mendeley Desktop/Downloaded/Li, Malik - Unknown - Learning to Optimize.pdf:pdf},
+mendeley-groups = {ML},
+title = {{Learning to Optimize}},
+url = {https://arxiv.org/pdf/1606.01885.pdf}
+}
+
+@article{Ren2018,
+abstract = {Deep neural networks have been shown to be very powerful modeling tools for many supervised learning tasks involving complex input patterns. However, they can also easily overfit to training set biases and label noises. In addition to various regularizers, example reweighting algorithms are popular solutions to these problems, but they require careful tuning of additional hyperparameters, such as example mining schedules and regularization hyperparameters. In contrast to past reweighting methods, which typically consist of functions of the cost value of each example, in this work we propose a novel meta-learning algorithm that learns to assign weights to training examples based on their gradient directions. To determine the example weights, our method performs a meta gradient descent step on the current mini-batch example weights (which are initialized from zero) to minimize the loss on a clean unbiased validation set. Our proposed method can be easily implemented on any type of deep network, does not require any additional hyperparameter tuning, and achieves impressive performance on class imbalance and corrupted label problems where only a small amount of clean validation data is available.},
+archivePrefix = {arXiv},
+arxivId = {1803.09050},
+author = {Ren, Mengye and Zeng, Wenyuan and Yang, Bin and Urtasun, Raquel},
+eprint = {1803.09050},
+file = {:home/alex/.local/share/data/Mendeley Ltd./Mendeley Desktop/Downloaded/Ren et al. - 2018 - Learning to Reweight Examples for Robust Deep Learning.pdf:pdf},
+mendeley-groups = {ML},
+month = {mar},
+title = {{Learning to Reweight Examples for Robust Deep Learning}},
+url = {http://arxiv.org/abs/1803.09050},
+year = {2018}
+}
+
+@article{Hoffer,
+abstract = {Background: Deep learning models are typically trained using stochastic gradient descent or one of its variants. These methods update the weights using their gradient, estimated from a small fraction of the training data. It has been observed that when using large batch sizes there is a persistent degradation in generalization performance -known as the "generalization gap" phenomenon. Identifying the origin of this gap and closing it had remained an open problem. Contributions: We examine the initial high learning rate training phase. We find that the weight distance from its initialization grows logarithmically with the number of weight updates. We therefore propose a "random walk on a random landscape" statistical model which is known to exhibit similar "ultra-slow" diffusion behavior. Following this hypothesis we conducted experiments to show empirically that the "generalization gap" stems from the relatively small number of updates rather than the batch size, and can be completely eliminated by adapting the training regime used. We further investigate different techniques to train models in the large-batch regime and present a novel algorithm named "Ghost Batch Normalization" which enables significant decrease in the generalization gap without increasing the number of updates. To validate our findings we conduct several additional experiments on MNIST, CIFAR-10, CIFAR-100 and ImageNet. Finally, we reassess common practices and beliefs concerning training of deep models and suggest they may not be optimal to achieve good generalization.},
+author = {Hoffer, Elad and Hubara, Itay and Soudry, Daniel},
+file = {:home/alex/.local/share/data/Mendeley Ltd./Mendeley Desktop/Downloaded/Hoffer, Hubara, Soudry - Unknown - Train longer, generalize better closing the generalization gap in large batch training of neural netw.pdf:pdf},
+mendeley-groups = {ML},
+title = {{Train longer, generalize better: closing the generalization gap in large batch training of neural networks}},
+url = {http://papers.nips.cc/paper/6770-train-longer-generalize-better-closing-the-generalization-gap-in-large-batch-training-of-neural-networks.pdf}
+}
+
+@article{Keskar,
+abstract = {The stochastic gradient descent (SGD) method and its variants are algorithms of choice for many Deep Learning tasks. These methods operate in a small-batch regime wherein a fraction of the training data, say 32?512 data points, is sampled to compute an approximation to the gradient. It has been observed in practice that when using a larger batch there is a degradation in the quality of the model, as measured by its ability to generalize. We investigate the cause for this generaliza-tion drop in the large-batch regime and present numerical evidence that supports the view that large-batch methods tend to converge to sharp minimizers of the training and testing functions?and as is well known, sharp minima lead to poorer generalization. In contrast, small-batch methods consistently converge to flat min-imizers, and our experiments support a commonly held view that this is due to the inherent noise in the gradient estimation. We discuss several strategies to attempt to help large-batch methods eliminate this generalization gap.},
+author = {Keskar, Nitish Shirish and Mudigere, Dheevatsa and Nocedal, Jorge and Smelyanskiy, Mikhail and Tak, Ping and Tang, Peter},
+file = {:home/alex/.local/share/data/Mendeley Ltd./Mendeley Desktop/Downloaded/Keskar et al. - Unknown - ON LARGE-BATCH TRAINING FOR DEEP LEARNING GENERALIZATION GAP AND SHARP MINIMA.pdf:pdf},
+mendeley-groups = {ML},
+title = {{ON LARGE-BATCH TRAINING FOR DEEP LEARNING: GENERALIZATION GAP AND SHARP MINIMA}},
+url = {https://arxiv.org/pdf/1609.04836.pdf}
+}
+
+@article{Dinh,
+abstract = {Despite their overwhelming capacity to overfit, deep learning architectures tend to generalize rel-atively well to unseen data, allowing them to be deployed in practice. However, explaining why this is the case is still an open area of research. One standing hypothesis that is gaining popularity, e.g. Hochreiter {\&} Schmidhuber (1997); Keskar et al. (2017), is that the flatness of minima of the loss function found by stochastic gradient based methods results in good generalization. This pa-per argues that most notions of flatness are prob-lematic for deep models and can not be directly applied to explain generalization. Specifically, when focusing on deep networks with rectifier units, we can exploit the particular geometry of pa-rameter space induced by the inherent symmetries that these architectures exhibit to build equivalent models corresponding to arbitrarily sharper min-ima. Furthermore, if we allow to reparametrize a function, the geometry of its parameters can change drastically without affecting its general-ization properties.},
+author = {Dinh, Laurent and Pascanu, Razvan and Bengio, Samy and Bengio, Yoshua},
+file = {:home/alex/.local/share/data/Mendeley Ltd./Mendeley Desktop/Downloaded/Dinh et al. - Unknown - Sharp Minima Can Generalize For Deep Nets.pdf:pdf},
+mendeley-groups = {ML},
+title = {{Sharp Minima Can Generalize For Deep Nets}},
+url = {https://arxiv.org/pdf/1703.04933.pdf}
+}
+
+@article{Arpit,
+abstract = {We examine the role of memorization in deep learning, drawing connections to capacity, gen-eralization, and adversarial robustness. While deep networks are capable of memorizing noise data, our results suggest that they tend to pri-oritize learning simple patterns first. In our experiments, we expose qualitative differences in gradient-based optimization of deep neural networks (DNNs) on noise vs. real data. We also demonstrate that for appropriately tuned explicit regularization (e.g., dropout) we can degrade DNN training performance on noise datasets without compromising generalization on real data. Our analysis suggests that the notions of effective capacity which are dataset indepen-dent are unlikely to explain the generalization performance of deep networks when trained with gradient based methods because training data it-self plays an important role in determining the degree of memorization.},
+author = {Arpit, Devansh and Jastrz?, Stanis{\l}aw and Ballas, Nicolas and Krueger, David and Bengio, Emmanuel and Kanwal, Maxinder S and Maharaj, Tegan and Fischer, Asja and Courville, Aaron and Bengio, Yoshua and Lacoste-Julien, Simon},
+file = {:home/alex/.local/share/data/Mendeley Ltd./Mendeley Desktop/Downloaded/Arpit et al. - Unknown - A Closer Look at Memorization in Deep Networks.pdf:pdf},
+mendeley-groups = {CSC2547 Project},
+title = {{A Closer Look at Memorization in Deep Networks}},
+url = {https://arxiv.org/pdf/1706.05394.pdf}
+}
+
+@techreport{Pham2018,
+abstract = {We propose Efficient Neural Architecture Search (ENAS), a fast and inexpensive approach for automatic model design. In ENAS, a controller discovers neural network architectures by searching for an optimal subgraph within a large computational graph. The controller is trained with policy gradient to select a subgraph that maximizes the expected reward on a validation set. Meanwhile the model corresponding to the selected subgraph is trained to minimize a canonical cross entropy loss. Sharing parameters among child models allows ENAS to deliver strong empirical performances, while using much fewer GPU-hours than existing automatic model design approaches , and notably, 1000x less expensive than standard Neural Architecture Search. On the Penn Treebank dataset, ENAS discovers a novel architecture that achieves a test perplexity of 55.8, establishing a new state-of-the-art among all methods without post-training processing. On the CIFAR-10 dataset, ENAS finds a novel architecture that achieves 2.89{\%} test error, which is on par with the 2.65{\%} test error of NAS-Net (Zoph et al., 2018).},
+archivePrefix = {arXiv},
+arxivId = {1802.03268v2},
+author = {Pham, Hieu and Guan, Melody Y and Zoph, Barret and Le, Quoc V and Dean, Jeff},
+eprint = {1802.03268v2},
+file = {:home/alex/.local/share/data/Mendeley Ltd./Mendeley Desktop/Downloaded/Pham et al. - 2018 - Efficient Neural Architecture Search via Parameter Sharing.pdf:pdf},
+mendeley-groups = {ML},
+title = {{Efficient Neural Architecture Search via Parameter Sharing}},
+url = {https://arxiv.org/pdf/1802.03268.pdf},
+year = {2018}
+}
+
+@techreport{Zoph,
+abstract = {Neural networks are powerful and flexible models that work well for many difficult learning tasks in image, speech and natural language understanding. Despite their success, neural networks are still hard to design. In this paper, we use a recurrent network to generate the model descriptions of neural networks and train this RNN with reinforcement learning to maximize the expected accuracy of the generated architectures on a validation set. On the CIFAR-10 dataset, our method, starting from scratch, can design a novel network architecture that rivals the best human-invented architecture in terms of test set accuracy. Our CIFAR-10 model achieves a test error rate of 3.65, which is 0.09 percent better and 1.05x faster than the previous state-of-the-art model that used a similar architectural scheme. On the Penn Treebank dataset, our model can compose a novel recurrent cell that out-performs the widely-used LSTM cell, and other state-of-the-art baselines. Our cell achieves a test set perplexity of 62.4 on the Penn Treebank, which is 3.6 perplex-ity better than the previous state-of-the-art model. The cell can also be transferred to the character language modeling task on PTB and achieves a state-of-the-art perplexity of 1.214.},
+archivePrefix = {arXiv},
+arxivId = {1611.01578v2},
+author = {Zoph, Barret and {Le Google Brain}, Quoc V},
+eprint = {1611.01578v2},
+file = {:home/alex/.local/share/data/Mendeley Ltd./Mendeley Desktop/Downloaded/Zoph, Le Google Brain - Unknown - NEURAL ARCHITECTURE SEARCH WITH REINFORCEMENT LEARNING.pdf:pdf},
+isbn = {1611.01578v2},
+mendeley-groups = {ML},
+title = {{NEURAL ARCHITECTURE SEARCH WITH REINFORCEMENT LEARNING}},
+url = {https://arxiv.org/pdf/1611.01578.pdf}
+}

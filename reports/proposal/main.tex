@@ -1,0 +1,196 @@
+\documentclass{article}
+
+% if you need to pass options to natbib, use, e.g.:
+% \PassOptionsToPackage{numbers, compress}{natbib}
+% before loading nips_2018
+
+% ready for submission
+% \usepackage[nonatbib]{nips_2018}
+
+% to compile a preprint version, e.g., for submission to arXiv, add
+% add the [preprint] option:
+\usepackage[preprint]{nips_2018}
+
+% to compile a camera-ready version, add the [final] option, e.g.:
+% \usepackage[final]{nips_2018}
+
+% to avoid loading the natbib package, add option nonatbib:
+% \usepackage[nonatbib]{nips_2018}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{natbib}
+
+% Our imports
+\usepackage{color}
+\usepackage{amsmath}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\title{More Efficient Stochastic Hyperparameter Optimization}
+
+\author{
+  Alex Adam, Jonathan Lorraine \\
+  Department of Computer Science\\
+  University of Toronto\\
+  Vector Institute\\
+  \texttt{alex.adam@mail.utoronto.ca, lorraine@cs.toronto.edu} \\
+  %% examples of more authors
+  %% \And
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+}
+
+\begin{document}
+% \nipsfinalcopy is no longer used
+
+% NOTATION.
+% A comment will be provided for what the function does after the definition.
+% Additionally, there will be comments for how to use any potential parameters.
+\newcommand{\JL}[1]{{\color{blue} #1}}  % A comment from Jon to make in blue. (1) The comment.
+\newcommand{\AlAd}[1]{{\color{red} #1}}  % A comment from Alex to make in blue. (1) The comment.
+
+\newcommand{\policy}{\pi}  % The policy network
+\newcommand{\state}[1]{s_{#1}}  % A state. (1) The index of the state.
+
+\maketitle
+
+\begin{abstract}
+  Stochastic hyperparameter optimization is a general formulation which includes problems like finding neural network architectures.
+  Current hyperparameter optimization procedures often involve nesting training of the elementary parameters of our network, with our hyperparameters.
+  This allows the approximation of gradient updates for the hyperparameters, but is often has a prohibitive computational cost.
+  We seek to reduce the cost by (1) using reinforcement learning to simultaneously learn a controller for our optimizer and architecture, and (2) including a gradient term missing in most formulations.
+\end{abstract}
+
+\section{Introduction}
+Selecting the hyperparameters of neural networks is often more of an art than a science.
+These include choices (among many others) for the network architecture, the optimizer, the loss function, or how to augment the data.
+The recent work of Efficient Neural Architecture Search (ENAS)~\citep{pham2018efficient} has seen success learning network architectures by training a controller to explore shared weights.
+This was computationally expensive, with a variety of routes for potential improvement.
+
+Proper tuning and scheduling of factors such as weight decay, learning rate, and weight initialization can determine if learning is possible.
+%This has been done with controllers trained by reinforcement learning as in \citet{Li}.
+Jointly optimizing these parameters with the architecture may allow us to more quickly find solutions from a broader set of candidate models.
+
+
+Additionally, there have been recent advances in gradient based hyperparameter optimization.
+These methods often involve computing a gradient of how the optimal elementary network parameters vary as the hyperparameters vary - denoted the response gradient.
+This term can be important when the validation and training loss want to update in different directions, as is the case with preventing overfitting.
+%This can be done - for example -  by differentiating through unrolling~\citep{maclaurin2015gradient}, or the implicit function theorem~\citep{pedregosa2016hyperparameter}.
+%In fact, some of the most widely used regularization techniques like batch-normalization intended to accelerate training, work for reasons that the original creators did not posit \cite{Santurkar}.
+%Furthermore, rules of thumb such as selecting small batch sizes in order to improve generalization also have several conflicting explanations as to why they work \cite{Hoffer} \cite{Keskar}. 
+%Additionally, theoretical analyses regarding the capacities of neural networks are done using representational capacity instead of effective capacity.
+%The difference being that representational capacity assumes any region of weight space is accessible whereas effective capacity takes into consideration all hyperparameters being used, as well as the dataset in question. Proper tuning and scheduling of factors such as weight decay, learning rate, and weight initialization often determines whether or not learning is even possible at all (cite Arpit paper).
+
+We have two primary contributions.
+(1) We propose to jointly find optimal combinations of model architecture and optimization hyperparameters using a policy gradient approach where a policy network outputs both architectural and optimizer hyperparameters.
+This addresses the sub-optimality in approaches like ENAS, which neglect to adapt the optimizer along with the model hyperparameters.
+(2) We combine methods for computing response gradients with ENAS.
+This addresses the potential sub-optimality in approaches like ENAS, which treat the response gradient as 0.
+
+% OLD INTRO
+% Training neural networks is often more of an art than a science.
+% In fact, some of the most widely used regularization techniques like batch-normalization intended to accelerate training, work for reasons that the original creators did not posit \cite{Santurkar}.
+% Furthermore, rules of thumb such as selecting small batch sizes in order to improve generalization also have several conflicting explanations as to why they work \cite{Hoffer} \cite{Keskar}.
+% Additionally, theoretical analyses regarding the capacities of neural networks are done using representational capacity instead of effective capacity.
+% The difference being that representational capacity assumes any region of weight space is accessible whereas effective capacity takes into consideration the optimizer being used, various hyperparameters, as well as the dataset in question.
+% Of the many factors affecting how difficult it may be to train a given neural network, perhaps the most significant is the optimizer itself since even if there is a parameter setting that generalizes well, an ineffective optimizer will never arrive at that solution.
+% Naturally, there have been many changes proposed to help traditional SGD converge faster to a local optimum such as momentum, adaptive learning rates with AdaDelta, and curvature approximation with Adam \cite{Ruder2016}.
+% These techniques work by effectively navigating regions of pathological curvature such as ravines which tend to significantly slow down training.
+
+% While the effectiveness of these approaches has resulted in state-of-the-art results compared to training with vanilla SGD, they are all hand engineered which is unsatisfying if neural networks are to learn like humans who are able to reason about their own learning process.
+% To address this, we propose to use two hypernetworks under a reinforcement learning paradigm in order to enable finding solutions that generalize better.
+% The policy network $\policy$ will be responsible for making modifications to the weight updates proposed by vanilla SGD in such a way the prevents overfitting.
+% The critic network $Q$ will learn the relationships between parameter settings and validation set performance.
+
+
+\section{Related Work}
+
+The field of automatic architecture design was revolutionized by Neural Architecture Search \citep{Zoph} who decided to use reinforcement learning to probabilistically propose new architectures intended to maximize performance on a validation set.
+This was done using an RNN controller that sequentially proposes hyperparameter settings that determine various convolutional or recurrent layer design choices.
+However, this framework is not practical as it was trained using 450 GPUs, so a more efficient method called ENAS was developed by \citep{pham2018efficient}.
+The main difference between NAS and ENAS is that in ENAS the parameters of the cells (i.e. the nodes and connections within an recurrent cell) are shared by all models thus leveraging the power of transfer learning.
+First, a set of child models is proposed by an RNN controller, and the shared parameters of those models are trained to minimize average validation loss across all the models.
+Then, the parameters of the controller are updated using REINFORCE in order to increase the likelihood of producing models that have better validation performance.
+
+Hyperparameter optimization can be done in a fully differentiable way if the dynamics of the training procedure are known ahead of time.
+\citep{maclaurin2015gradient} do this by starting with the final weights of a neural network, then computing the gradient of the validation loss w.r.t. hyperparameters by iteratively determining what the neural network weights were at each step in the training procedure starting at the end.
+This allows them to not have to store the weights and gradients at every training iteration in memory as that is in-feasible, even for moderately-sized models.
+
+% OLD RELATED WORK
+% Similar ideas have been investigated enable the learning of optimization algorithms themselves.
+% \citet{Li} proposed training a network $\policy (f, \{ x^{(0)}, ..., x^{(i-1)}\})$ that is a function of the current weights, as well as all past weights in order to generate the next weight update.
+% The authors also chose to formulate this as a reinforcement learning problem where $\policy$ is a policy network that suggests changes to the weights, and they learned $\policy$ using guided policy search.
+% Intuitively, the objective of having a data-driven learning algorithm is for it to be able to recognize previous loss surface geometries it has encountered, and leverage what it did in the past to generalize to new, similar loss surface geometries.
+% However, the authors did not take into consideration the effect of updates on validation loss.
+% In order to improve on this approach by considering generalization performance in addition to training set performance, we take inspiration from \cite{Ren2018}.
+% Here, the authors consider weighting training samples based on the similarity of their gradients to the gradients of the samples in the validation set.
+% They claim that if the gradient of a training sample is very different than all of the gradients of the validation samples, then moving in this direction should be down weighted as it decreases performance.
+
+
+\newcommand{\hyper}{\lambda} % An arbitrary hyperparameter.
+\newcommand{\weight}{\textbf{w}} % An arbitrary hyperparameter.
+\newcommand{\hyperOpt}{\hyper^*} % An arbitrary hyperparameter.
+\newcommand{\weightOpt}{\weight^*} % An arbitrary hyperparameter.
+\newcommand{\lossValid}{\mathcal{L}_{\textnormal{val}}} % The validation loss.
+\newcommand{\lossTrain}{\mathcal{L}_{\textnormal{train}}} % The training loss.
+\section{Methods}
+We adopt the framework proposed in ENAS~\citep{pham2018efficient} for optimizing architectural hyperparameters, but focus on smaller scale experiments as proof of concept.
+
+Suppose that $\lossTrain$ and $\lossValid$ are our training and validation losses respectively. 
+Additionally, suppose that $\weight$ and $\hyper$ are our elementary parameters and hyperparameters.
+Note that to optimize our hyperparameters - including architectural parameters - we wish to solve:
+\begin{equation}
+    \hyperOpt
+    = \argmin_\hyper \lossValid ( \hyper, \argmin_\weight \lossTrain (\hyper, \weight) )
+    = \argmin_\hyper \lossValid ( \hyper, \weightOpt (\hyper) )
+\end{equation}
+
+If we wish to do gradient descent on the hyperparameters we must compute the following term:
+\begin{equation}
+    \overbrace{\frac{d \lossValid}{d \hyper}}^{\textnormal{Outer gradient}} 
+    = \overbrace{\frac{\partial \lossValid}{\partial \hyper}}^{\textnormal{Direct gradient}}
+    + \overbrace{\frac{\partial \lossValid}{\partial \weightOpt} \frac{\partial \weightOpt}{\partial \hyper}}^{\textnormal{Response gradient}}
+\end{equation}
+
+Note how the Outer gradient is the sum of the direct gradient and the response gradient.
+The direct gradient is how the hyperparameters change the validation loss, given the elementary parameters $\weightOpt$ stay constant.
+The response gradient is how the validation loss changes as the elementary parameters change with how the optimal elementary parameters change as the hyperparameters vary.
+In ENAS, the direct gradient is computed using REINFORCE, while the response gradient is assumed to be 0.
+Here, we approximate the response gradient using either unrolled differentiation as in \citet{maclaurin2015gradient} or the Implicit Function Theorem as in \citet{pedregosa2016hyperparameter}.
+
+Additionally, we include optimizer hyperparameters in $\hyper$, whereas ENAS only includes architectural hyperparameters. Specifically, our controller will be multi-task, and the corresponding weight/hidden state sharing between the two tasks (selecting architecture hyperparameters, and selecting optimizer hyperparameters), is what allows for representing the interactions between the two types of hyperaparameters.
+
+%\subsection{Proposed Algorithm}
+%We combine the work done in \cite{Li} and \cite{Ren2018} in order to learn an optimizer that takes into consideration improvements on the training and validation set.
+%The interpretation behind these updates is that they are regularized in such a way that increases in validation loss are prevented.
+%This removes the need for additional regularization techniques such as weight decay, dropout, and early stopping.
+%Initially, the policy network $\policy$ responsible for suggesting updates will be tuned to output the same updates as gradient descent or some other hand-tuned optimizer, in expectation.
+%We will first use a conditional Gaussian distribution $\mathcal{N} (\policy (\state{t}), K)$ like in \cite{Li} as our policy with a neural network parameterizing the mean.
+%The state $\state{t}$ contains current and past weights, as well as current and past gradients.
+%
+%\noindent Since this is an ambitious idea that has not been extensively explored in the literature, we consider alternate formulations of the problem that are more tractable.
+%We note that there are several choices to be made in terms of what our policy actually outputs (in order of decreasing difficulty):
+%
+%\begin{itemize}
+%    \item Weight Updates
+%    \item Learning Rates
+%    \item Other Hyperparameters
+%\end{itemize}
+%
+%
+%
+%
+%Our main goal is to regularize gradient descent updates in a data-dependent way that does not allow for overfitting. Thus, we are not necessarily trying to maximize validation set performance, rather we are trying to maximize training set performance under the constraint that validation set performance does not diverge too far.
+%
+\bibliography{csc2541_f18.bib}
+\bibliographystyle{unsrtnat}
+\end{document}
