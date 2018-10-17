@@ -6,6 +6,15 @@ One Paragraph of project description goes here.
 
 ## TODO
 
+* Fill out the TODO in-depth.
+* Fill out the README.
+* Construct a skeleton of the final report from the proposal.
+* Get ENAS working and write down notes for deployment.
+* Make a super simple ENAS, with maybe 1 parameter.
+* Add controller for optimizer parameters.
+* Add approximation for missing gradient term.
+* Get KFAC code?
+
 ## Getting Started
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
