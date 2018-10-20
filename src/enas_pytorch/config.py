@@ -1,5 +1,10 @@
 import argparse
-from utils import get_logger
+from src.enas_pytorch.utils import get_logger
+
+from settings import ROOT_DIR
+from dotenv import  find_dotenv, load_dotenv
+
+import os
 
 logger = get_logger()
 
@@ -17,7 +22,7 @@ def add_argument_group(name):
 
 # Network
 net_arg = add_argument_group('Network')
-net_arg.add_argument('--network_type', type=str, choices=['rnn', 'cnn'], default='rnn')
+net_arg.add_argument('--network_type', type=str, choices=['rnn', 'cnn'], default='cnn')
 
 # Controller
 net_arg.add_argument('--num_blocks', type=int, default=12)
@@ -66,7 +71,7 @@ net_arg.add_argument('--cnn_hid', type=int, default=64)
 
 # Data
 data_arg = add_argument_group('Data')
-data_arg.add_argument('--dataset', type=str, default='ptb')
+data_arg.add_argument('--dataset', type=str, default='mnist')
 
 
 # Training / test parameters
@@ -132,6 +137,7 @@ misc_arg.add_argument('--log_level', type=str, default='INFO', choices=['INFO', 
 misc_arg.add_argument('--log_dir', type=str, default='logs')
 misc_arg.add_argument('--data_dir', type=str, default='data')
 misc_arg.add_argument('--num_gpu', type=int, default=1)
+misc_arg.add_argument('--num-workers', type=int, default=2)
 misc_arg.add_argument('--random_seed', type=int, default=12345)
 misc_arg.add_argument('--use_tensorboard', type=str2bool, default=True)
 
@@ -141,6 +147,10 @@ def get_args():
     hyperparameters mentioned in the paper.
     """
     args, unparsed = parser.parse_known_args()
+    d = vars(args)
+
+    load_dotenv(find_dotenv(), override=True)
+    d["data_dir"] = os.path.join(ROOT_DIR, args.data_dir)
     if args.num_gpu > 0:
         setattr(args, 'cuda', True)
     else:

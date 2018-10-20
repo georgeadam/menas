@@ -134,22 +134,23 @@ class Trainer(object):
             if regularizer[1]:
                 logger.info(f'{regularizer[0]}')
 
-        self.train_data = utils.batchify(dataset.train,
-                                         args.batch_size,
-                                         self.cuda)
-        # NOTE(brendan): The validation set data is batchified twice
-        # separately: once for computing rewards during the Train Controller
-        # phase (valid_data, batch size == 64), and once for evaluating ppl
-        # over the entire validation set (eval_data, batch size == 1)
-        self.valid_data = utils.batchify(dataset.valid,
-                                         args.batch_size,
-                                         self.cuda)
-        self.eval_data = utils.batchify(dataset.valid,
-                                        args.test_batch_size,
-                                        self.cuda)
-        self.test_data = utils.batchify(dataset.test,
-                                        args.test_batch_size,
-                                        self.cuda)
+        if args.network_type == "rnn":
+            self.train_data = utils.batchify(dataset.train,
+                                             args.batch_size,
+                                             self.cuda)
+            # NOTE(brendan): The validation set data is batchified twice
+            # separately: once for computing rewards during the Train Controller
+            # phase (valid_data, batch size == 64), and once for evaluating ppl
+            # over the entire validation set (eval_data, batch size == 1)
+            self.valid_data = utils.batchify(dataset.valid,
+                                             args.batch_size,
+                                             self.cuda)
+            self.eval_data = utils.batchify(dataset.valid,
+                                            args.test_batch_size,
+                                            self.cuda)
+            self.test_data = utils.batchify(dataset.test,
+                                            args.test_batch_size,
+                                            self.cuda)
 
         self.max_length = self.args.shared_rnn_max_length
 

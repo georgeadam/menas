@@ -3,10 +3,11 @@ import os
 
 import torch
 
-import data
-import config
-import utils
-import trainer
+import src.enas_pytorch.data.image
+import src.enas_pytorch.data as data
+import src.enas_pytorch.config as config
+import src.enas_pytorch.utils as utils
+import src.enas_pytorch.trainer as trainer
 
 logger = utils.get_logger()
 
@@ -19,11 +20,12 @@ def main(args):  # pylint:disable=redefined-outer-name
 
     if args.num_gpu > 0:
         torch.cuda.manual_seed(args.random_seed)
+        torch.backends.cudnn.deterministic = True
 
     if args.network_type == 'rnn':
         dataset = data.text.Corpus(args.data_path)
-    elif args.dataset == 'cifar':
-        dataset = data.image.Image(args.data_path)
+    elif args.network_type == 'cnn':
+        dataset = data.image.Image(args)
     else:
         raise NotImplementedError(f"{args.dataset} is not supported")
 
