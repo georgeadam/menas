@@ -6,6 +6,15 @@ One Paragraph of project description goes here.
 
 ## TODO
 
+From Meeting:
+
+* Re-run current code and see if it works.
+* Write up missing term and background, etc.
+* Different DAG?
+* Ablation Studies.
+
+
+
 * Fill out the TODO in-depth.
 * Fill out the README.
 * Construct a skeleton of the final report from the proposal.
