@@ -2,8 +2,9 @@ import argparse
 from src.enas_pytorch.utils import get_logger
 
 from settings import ROOT_DIR
-from dotenv import  find_dotenv, load_dotenv
+ROOT_DIR += '/src/enas_pytorch'
 
+from dotenv import  find_dotenv, load_dotenv
 import os
 
 logger = get_logger()

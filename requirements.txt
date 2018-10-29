@@ -16,3 +16,7 @@ scipy
 imageio
 pygraphviz
 tensorboardX
+
+# OTHER
+torch
+torchvision
