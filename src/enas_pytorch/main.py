@@ -3,6 +3,10 @@ import os
 
 import torch
 
+import sys
+sys.path.insert(-1, os.path.abspath(".."))
+sys.path.insert(-1, os.path.abspath("../.."))
+
 import src.enas_pytorch.data.image
 import src.enas_pytorch.data as data
 import src.enas_pytorch.config as config
