@@ -48,3 +48,4 @@ def main(args):  # pylint:disable=redefined-outer-name
 if __name__ == "__main__":
     args, unparsed = config.get_args()
     main(args)
+    # python main.py --network_type rnn --dataset ptb --controller_optim adam --controller_lr 0.00035 --shared_optim sgd --shared_lr 20.0 --entropy_coeff 0.0001 --num_gpu 0
