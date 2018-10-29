@@ -8,11 +8,27 @@ One Paragraph of project description goes here.
 
 From Meeting:
 
-* Re-run current code and see if it works.
-* Write up missing term and background, etc.
-* Different DAG?
-* Ablation Studies.
+1. Reproduce existing results on RNN search
+    * Just need to be in the ballpark of what they got in the paper
+    * Debug to see how long the sequences are for the PTB task: there is a comment in the code saying that backprop 
+    through time is truncated at 35 time steps
+    * Figure out if how the hidden state for the shared parameters is being stored makes sense 
 
+2. Add this extra gradient term (without actually differentiating through it)
+    * Compare this against regular training
+    * There are a couple of choices to be made in terms of how we actually get this additional term: momentum stored 
+    in the optimizer (least noisy), most recent gradient (most noisy)
+    
+3. Change the search space such that it is possible to sample LSTM style cells with hadamard products
+	* Their DAG is too simplified since for each node in a cell, we just sample an activation function and a previous node to connect it to
+    * We should include more complicated connection patterns as an available choice
+    
+4. We can restrict the choices for activation function to be for the entire cell rather than for each node in the cell
+    * Based on some of the cells they came up with, there is alternation between tanh and relu activation for the 
+    nodes inside the cell that seems totally arbitrary and likely reduces interpretability of the features created
+    
+* Write up missing term and background, etc.
+* Ablation Studies.
 
 
 * Fill out the TODO in-depth.
