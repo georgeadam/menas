@@ -426,7 +426,7 @@ class Trainer(object):
 
         hidden = self.shared.init_hidden(self.args.batch_size)
         total_loss = 0
-        valid_idx = 0
+        valid_idx = random.randint(0, self.valid_data.size(0) - 1)#0
         for step in range(self.args.controller_max_step):
             # sample models
             dags, log_probs, entropies = self.controller.sample(
@@ -519,8 +519,8 @@ class Trainer(object):
             self.controller_step += 1
 
             prev_valid_idx = valid_idx
-            valid_idx = ((valid_idx + self.max_length) %
-                         (self.valid_data.size(0) - 1))
+            valid_idx = random.randint(0, self.valid_data.size(0) - 1)#((valid_idx + self.max_length) % (self.valid_data.size(0) - 1))
+            # TODO: I CHANGED THIS.
             # NOTE(brendan): Whenever we wrap around to the beginning of the
             # validation data, we reset the hidden states.
             if prev_valid_idx > valid_idx:
