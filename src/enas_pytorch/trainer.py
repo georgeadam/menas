@@ -220,7 +220,7 @@ class Trainer(object):
         """
         if self.args.shared_initial_step > 0:
             self.train_shared(self.args.shared_initial_step)
-            #self.train_controller()
+            self.train_controller()
 
         for self.epoch in range(self.start_epoch, self.args.max_epoch):
             # 1. Training the shared parameters omega of the child models
