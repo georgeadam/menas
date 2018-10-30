@@ -523,8 +523,9 @@ class Trainer(object):
             # TODO: I CHANGED THIS.
             # NOTE(brendan): Whenever we wrap around to the beginning of the
             # validation data, we reset the hidden states.
-            if prev_valid_idx > valid_idx:
-                hidden = self.shared.init_hidden(self.args.batch_size)
+            # TODO: I TOOK OUT HIDDEN RESET
+            #if prev_valid_idx > valid_idx:
+            #    hidden = self.shared.init_hidden(self.args.batch_size)
 
     def evaluate(self, source, dag, name, batch_size=1, max_num=None):
         """Evaluate on the validation set.
