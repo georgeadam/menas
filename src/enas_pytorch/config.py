@@ -81,7 +81,7 @@ learn_arg.add_argument('--mode', type=str, default='train',
                        help='train: Training ENAS, derive: Deriving Architectures')
 learn_arg.add_argument('--batch_size', type=int, default=64)
 learn_arg.add_argument('--test_batch_size', type=int, default=1)
-learn_arg.add_argument('--max_epoch', type=int, default=150)
+learn_arg.add_argument('--max_epoch', type=int, default=150 * (2000 / 1))  # TODO: I changed this
 learn_arg.add_argument('--entropy_mode', type=str, default='reward', choices=['reward', 'regularizer'])
 
 
