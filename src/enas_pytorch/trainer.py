@@ -19,8 +19,6 @@ from models.shared_rnn import RNN
 from models.shared_cnn import CNN
 from models.controller import Controller
 
-
-
 logger = utils.get_logger()
 
 
@@ -108,6 +106,7 @@ def _check_abs_max_grad(abs_max_grad, model):
 
 class Trainer(object):
     """A class to wrap training code."""
+
     def __init__(self, args, dataset):
         """Constructor for training algorithm.
 
@@ -174,11 +173,16 @@ class Trainer(object):
         self.shared_optim = shared_optimizer(
             self.shared.parameters(),
             lr=self.shared_lr,
-            weight_decay=self.args.shared_l2_reg)
+            weight_decay=self.args.shared_l2_reg,
+            momentum=0.9,
+            nesterov=False)  # TODO: NOTE THAT I ADDED MOMENTUM AND NESTEROV HERE
 
         self.controller_optim = controller_optimizer(
             self.controller.parameters(),
             lr=self.args.controller_lr)
+
+        self.shared_prior_update = None
+        self.controller_prior_update = None
 
         self.ce = nn.CrossEntropyLoss()
 
@@ -231,7 +235,7 @@ class Trainer(object):
                     self.evaluate(self.eval_data,
                                   best_dag,
                                   'val_best',
-                                  max_num=self.args.batch_size*100)
+                                  max_num=self.args.batch_size * 100)
                 self.save_model()
 
             if self.epoch >= self.args.shared_decay_after:
@@ -319,7 +323,34 @@ class Trainer(object):
             abs_max_grad = _check_abs_max_grad(abs_max_grad, model)
             torch.nn.utils.clip_grad_norm(model.parameters(),
                                           self.args.shared_grad_clip)
+
+            # UPDATE SHARED PARAMETERS TEMPORARILY
+            if self.controller_prior_update is not None:  # The first iteration is none
+                for key, p in enumerate(self.controller_optim.param_groups[0]['params']):
+                    if self.controller_prior_update[key] is not None:
+                        p.data.add_(1, self.controller_prior_update[key])
+
             self.shared_optim.step()
+
+            '''for group in self.shared_optim.param_groups:
+                print(f"Shared momentum = {group['momentum']}, {len(group['params'])}")
+                for p in group['params']:
+                    param_state = self.shared_optim.state[p]
+                    if 'momentum_buffer' not in param_state:
+                        print("Shared: No momentum buffer yet...")
+                    else:
+                        print("Shared: Buffer!")
+                        # buf = param_state['momentum_buffer']'''
+            self.shared_prior_update = [
+                self.shared_optim.state[p]['momentum_buffer'].mul_(-self.shared_optim.param_groups[0]['lr'])
+                if 'momentum_buffer' in self.shared_optim.state[p] else None
+                for p in self.shared_optim.param_groups[0]['params']]
+
+            # RESTORE SHARED PARAMETERS
+            if self.controller_prior_update is not None:  # The first iteration is none
+                for key, p in enumerate(self.controller_optim.param_groups[0]['params']):
+                    if self.controller_prior_update[key] is not None:
+                        p.data.add_(-1, self.controller_prior_update[key])
 
             total_loss += loss.data
 
@@ -424,9 +455,9 @@ class Trainer(object):
             adv_history.extend(adv)
 
             # policy loss
-            loss = -log_probs*utils.get_variable(adv,
-                                                 self.cuda,
-                                                 requires_grad=False)
+            loss = -log_probs * utils.get_variable(adv,
+                                                   self.cuda,
+                                                   requires_grad=False)
             if self.args.entropy_mode == 'regularizer':
                 loss -= self.args.entropy_coeff * entropies
 
@@ -439,7 +470,33 @@ class Trainer(object):
             if self.args.controller_grad_clip > 0:
                 torch.nn.utils.clip_grad_norm(model.parameters(),
                                               self.args.controller_grad_clip)
+
+            # UPDATE SHARED PARAMETERS TEMPORARILY
+            for key, p in enumerate(self.shared_optim.param_groups[0]['params']):
+                if self.shared_prior_update[key] is not None:
+                    p.data.add_(1, self.shared_prior_update[key])
+
             self.controller_optim.step()
+
+            '''for group in self.controller_optim.param_groups:
+                print(f"Controller betas = {group['betas']}, {len(group['params'])}")
+                for p in group['params']:
+                    param_state = self.controller_optim.state[p]
+                    if 'exp_avg' not in param_state:
+                        print("Controller: No exp_avg yet...")
+                    else:
+                        print("Controller: Exp_avg!")
+                        # buf = param_state['momentum_buffer']'''
+            # Take the exp_avg, and divide by (exp_avg_sq + eps)
+            self.controller_prior_update = [
+                self.controller_optim.state[p]['exp_avg'].mul_(-self.controller_optim.param_groups[0]['lr']).div_(self.controller_optim.state[p]['exp_avg_sq'].sqrt().add_(self.controller_optim.param_groups[0]['eps']))
+                if 'exp_avg' in self.controller_optim.state[p] else None
+                for p in self.controller_optim.param_groups[0]['params']]
+
+            # RESTORE SHARED PARAMETERS
+            for key, p in enumerate(self.shared_optim.param_groups[0]['params']):
+                if self.shared_prior_update[key] is not None:
+                    p.data.add_(-1, self.shared_prior_update[key])
 
             total_loss += utils.to_item(loss.data)
 
@@ -473,7 +530,7 @@ class Trainer(object):
         self.shared.eval()
         self.controller.eval()
 
-        data = source[:max_num*self.max_length]
+        data = source[:max_num * self.max_length]
 
         total_loss = 0
         hidden = self.shared.init_hidden(batch_size)
@@ -540,9 +597,9 @@ class Trainer(object):
         # https://github.com/pytorch/examples/blob/master/word_language_model/main.py
         length = min(length if length else self.max_length,
                      len(source) - 1 - idx)
-        data = Variable(source[idx:idx + length], volatile=volatile)
-        target = Variable(source[idx + 1:idx + 1 + length].view(-1),
-                          volatile=volatile)
+        with torch.no_grad():
+            data = Variable(source[idx:idx + length])
+            target = Variable(source[idx + 1:idx + 1 + length].view(-1))
         return data, target
 
     @property
@@ -559,8 +616,8 @@ class Trainer(object):
 
         def get_numbers(items, delimiter, idx, replace_word, must_contain=''):
             return list(set([int(
-                    name.split(delimiter)[idx].replace(replace_word, ''))
-                    for name in basenames if must_contain in name]))
+                name.split(delimiter)[idx].replace(replace_word, ''))
+                for name in basenames if must_contain in name]))
 
         basenames = [os.path.basename(path.rsplit('.', 1)[0]) for path in paths]
         epochs = get_numbers(basenames, '_', 1, 'epoch')

@@ -1,6 +1,9 @@
 """Entry point."""
 import torch
 
+#import sys, os
+#sys.path.append(os.path.join(os.path.dirname(__file__)))
+
 from data.image import Image
 from data.text import Corpus
 

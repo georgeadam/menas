@@ -257,8 +257,10 @@ class RNN(models.shared_base.SharedModel):
                 normalizer = normalizer[:, np.newaxis]
 
                 mask[clip_select] = normalizer
-                hidden *= torch.autograd.Variable(
-                    torch.FloatTensor(mask).cuda(), requires_grad=False)
+                if self.args.cuda:
+                    hidden *= torch.autograd.Variable(torch.FloatTensor(mask).cuda(), requires_grad=False)
+                else:
+                    hidden *= torch.autograd.Variable(torch.FloatTensor(mask), requires_grad=False)
 
             logits.append(logit)
             h1tohT.append(hidden)
