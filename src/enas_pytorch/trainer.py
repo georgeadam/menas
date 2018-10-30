@@ -229,13 +229,13 @@ class Trainer(object):
             # 2. Training the controller parameters theta
             self.train_controller()
 
-            if False: #self.epoch % self.args.save_epoch == 0:
+            if self.epoch % self.args.save_epoch == 0:
                 with _get_no_grad_ctx_mgr():
                     best_dag = self.derive()
                     self.evaluate(self.eval_data,
                                   best_dag,
                                   'val_best',
-                                  max_num=self.args.batch_size * 100)
+                                  max_num=1)#self.args.batch_size * 100)
                 self.save_model()
 
             if self.epoch >= self.args.shared_decay_after:
