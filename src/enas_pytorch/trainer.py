@@ -328,10 +328,10 @@ class Trainer(object):
             torch.nn.utils.clip_grad_norm_(model.parameters(), self.args.shared_grad_clip)
 
             # UPDATE SHARED PARAMETERS TEMPORARILY
-            if self.controller_prior_update is not None:  # The first iteration is none
-                for key, p in enumerate(self.controller_optim.param_groups[0]['params']):
-                    if self.controller_prior_update[key] is not None:
-                        p.data.add_(1, self.controller_prior_update[key])
+            #if self.controller_prior_update is not None:  # The first iteration is none
+            #    for key, p in enumerate(self.controller_optim.param_groups[0]['params']):
+            #        if self.controller_prior_update[key] is not None:
+            #            p.data.add_(1, self.controller_prior_update[key])
 
             self.shared_optim.step()
 
@@ -354,10 +354,10 @@ class Trainer(object):
                 #for p in self.shared_optim.param_groups[0]['params']]
 
             #RESTORE SHARED PARAMETERS
-            if self.controller_prior_update is not None:  # The first iteration is none
-                for key, p in enumerate(self.controller_optim.param_groups[0]['params']):
-                    if self.controller_prior_update[key] is not None:
-                        p.data.add_(-1, self.controller_prior_update[key])
+            #if self.controller_prior_update is not None:  # The first iteration is none
+            #    for key, p in enumerate(self.controller_optim.param_groups[0]['params']):
+            #        if self.controller_prior_update[key] is not None:
+            #            p.data.add_(-1, self.controller_prior_update[key])
 
             total_loss += loss.data
 
