@@ -120,7 +120,7 @@ learn_arg.add_argument('--shared_num_sample', type=int, default=1,
 learn_arg.add_argument('--shared_optim', type=str, default='sgd')
 learn_arg.add_argument('--shared_lr', type=float, default=20.0)
 learn_arg.add_argument('--shared_decay', type=float, default=0.96)
-learn_arg.add_argument('--shared_decay_after', type=float, default=15)  # TODO: THIS SHOULD CHANGE, SINCE I CHANGED NUMBER OF ITERATIONS
+learn_arg.add_argument('--shared_decay_after', type=float, default=15 * (2000 / 1))  # TODO: THIS SHOULD CHANGE, SINCE I CHANGED NUMBER OF ITERATIONS
 learn_arg.add_argument('--shared_l2_reg', type=float, default=1e-7)
 learn_arg.add_argument('--shared_grad_clip', type=float, default=0.25)
 
