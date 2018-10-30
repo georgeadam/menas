@@ -218,9 +218,9 @@ class Trainer(object):
         - In the second phase, the controller's parameters are trained for 2000
           steps.
         """
-        for _ in range(self.args.shared_initial_step):
-            self.train_shared()#self.args.shared_initial_step)
-            # self.train_controller()
+        if self.args.shared_initial_step > 0:
+            self.train_shared(self.args.shared_initial_step)
+            self.train_controller()
 
         for self.epoch in range(self.start_epoch, self.args.max_epoch):
             # 1. Training the shared parameters omega of the child models
@@ -321,7 +321,7 @@ class Trainer(object):
                 abs_max_hidden_norm = new_abs_max_hidden_norm
                 logger.info(f'max hidden {abs_max_hidden_norm}')
             abs_max_grad = _check_abs_max_grad(abs_max_grad, model)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), self.args.shared_grad_clip)
+            torch.nn.utils.clip_grad_norm(model.parameters(), self.args.shared_grad_clip)
 
             # UPDATE SHARED PARAMETERS TEMPORARILY
             if self.controller_prior_update is not None:  # The first iteration is none
