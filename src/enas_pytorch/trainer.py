@@ -297,7 +297,7 @@ class Trainer(object):
         total_loss = 0
         train_idx = 0
         # TODO(brendan): Why - 1 - 1?
-        for train_idx in [random.randint(0, self.train_data.size(0) - 1 - 1 - 1)
+        for train_idx in [random.randint(0, self.train_data.size(0) - 1 - 1 - 1 - self.max_length)
                           for _ in range(self.train_data.size(0) - 1 - 1)]: #while _ < self.train_data.size(0) - 1 - 1:
             if step > max_step:
                 break
@@ -519,7 +519,7 @@ class Trainer(object):
             self.controller_step += 1
 
             prev_valid_idx = valid_idx
-            valid_idx = random.randint(0, self.valid_data.size(0) - 1)#((valid_idx + self.max_length) % (self.valid_data.size(0) - 1))
+            valid_idx = random.randint(0, self.valid_data.size(0) - 1 - self.max_length)#((valid_idx + self.max_length) % (self.valid_data.size(0) - 1))
             # TODO: I CHANGED THIS.
             # NOTE(brendan): Whenever we wrap around to the beginning of the
             # validation data, we reset the hidden states.
