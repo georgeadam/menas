@@ -110,7 +110,7 @@ learn_arg.add_argument('--softmax_temperature', type=float, default=5.0)
 learn_arg.add_argument('--entropy_coeff', type=float, default=1e-4)
 
 # Shared parameters
-learn_arg.add_argument('--shared_initial_step', type=int, default=399)  # TODO: Changed from 0 to 399
+learn_arg.add_argument('--shared_initial_step', type=int, default=0)  # TODO: Changed from 0 to 399
 learn_arg.add_argument('--shared_max_step', type=int, default=400,
                        help='step for shared parameters') # TODO: CHANGED FROM 400 to 1
 # NOTE(brendan): Should be 10 for CNN architectures.
