@@ -174,12 +174,12 @@ class Trainer(object):
             self.shared.parameters(),
             weight_decay=self.args.shared_l2_reg,
             lr=self.args.controller_lr)
-            #shared_optimizer(
-            #self.shared.parameters(),
-            #lr=self.shared_lr / 50.0,
-            #weight_decay=self.args.shared_l2_reg,
-            #momentum=0.9,
-            #nesterov=True)  # TODO: NOTE THAT I ADDED MOMENTUM AND NESTEROV HERE'''
+        # shared_optimizer(
+        # self.shared.parameters(),
+        # lr=self.shared_lr / 50.0,
+        # weight_decay=self.args.shared_l2_reg,
+        # momentum=0.9,
+        # nesterov=True)  # TODO: NOTE THAT I ADDED MOMENTUM AND NESTEROV HERE'''
 
         self.controller_optim = controller_optimizer(
             self.controller.parameters(),
@@ -239,7 +239,7 @@ class Trainer(object):
                     self.evaluate(self.eval_data,
                                   best_dag,
                                   'val_best',
-                                  max_num=1)#self.args.batch_size * 100)
+                                  max_num=1)  # self.args.batch_size * 100)
                 self.save_model()
 
             if self.epoch >= self.args.shared_decay_after:
@@ -300,6 +300,11 @@ class Trainer(object):
             if step > max_step:
                 break
 
+            if self.controller_prior_update is not None:  # The first iteration is none
+                for key, p in enumerate(self.controller_optim.param_groups[0]['params']):
+                    if self.controller_prior_update[key] is not None:
+                        p.data.add_(1, self.controller_prior_update[key])
+
             dags = self.controller.sample(self.args.shared_num_sample)
             inputs, targets = self.get_batch(self.train_data,
                                              train_idx,
@@ -328,10 +333,6 @@ class Trainer(object):
             torch.nn.utils.clip_grad_norm_(model.parameters(), self.args.shared_grad_clip)
 
             # UPDATE SHARED PARAMETERS TEMPORARILY
-            #if self.controller_prior_update is not None:  # The first iteration is none
-            #    for key, p in enumerate(self.controller_optim.param_groups[0]['params']):
-            #        if self.controller_prior_update[key] is not None:
-            #            p.data.add_(1, self.controller_prior_update[key])
 
             self.shared_optim.step()
 
@@ -345,16 +346,17 @@ class Trainer(object):
                         print("Shared: Buffer!")
                         # buf = param_state['momentum_buffer']'''
             self.shared_prior_update = [
-                self.shared_optim.state[p]['exp_avg'].mul_(-self.shared_optim.param_groups[0]['lr']).div_(self.shared_optim.state[p]['exp_avg_sq'].sqrt().add_(self.shared_optim.param_groups[0]['eps']))
+                self.shared_optim.state[p]['exp_avg'].mul_(-self.shared_optim.param_groups[0]['lr']).div_(
+                    self.shared_optim.state[p]['exp_avg_sq'].sqrt().add_(self.shared_optim.param_groups[0]['eps']))
                 if 'exp_avg' in self.shared_optim.state[p] else None
                 for p in self.shared_optim.param_groups[0]['params']]
-                #[
-                #self.shared_optim.state[p]['momentum_buffer'].mul_(-self.shared_optim.param_groups[0]['lr'])
-                #if 'momentum_buffer' in self.shared_optim.state[p] else None
-                #for p in self.shared_optim.param_groups[0]['params']]
+            # [
+            # self.shared_optim.state[p]['momentum_buffer'].mul_(-self.shared_optim.param_groups[0]['lr'])
+            # if 'momentum_buffer' in self.shared_optim.state[p] else None
+            # for p in self.shared_optim.param_groups[0]['params']]
 
-            #RESTORE SHARED PARAMETERS
-            #if self.controller_prior_update is not None:  # The first iteration is none
+            # RESTORE SHARED PARAMETERS
+            # if self.controller_prior_update is not None:  # The first iteration is none
             #    for key, p in enumerate(self.controller_optim.param_groups[0]['params']):
             #        if self.controller_prior_update[key] is not None:
             #            p.data.add_(-1, self.controller_prior_update[key])
@@ -430,6 +432,11 @@ class Trainer(object):
         total_loss = 0
         valid_idx = 0
         for step in range(self.args.controller_max_step):
+            # UPDATE SHARED PARAMETERS TEMPORARILY
+            for key, p in enumerate(self.shared_optim.param_groups[0]['params']):
+                if self.shared_prior_update[key] is not None:
+                    p.data.add_(1, self.shared_prior_update[key])
+
             # sample models
             dags, log_probs, entropies = self.controller.sample(
                 with_details=True)
@@ -478,11 +485,6 @@ class Trainer(object):
                 torch.nn.utils.clip_grad_norm(model.parameters(),
                                               self.args.controller_grad_clip)
 
-            # UPDATE SHARED PARAMETERS TEMPORARILY
-            for key, p in enumerate(self.shared_optim.param_groups[0]['params']):
-                if self.shared_prior_update[key] is not None:
-                    p.data.add_(1, self.shared_prior_update[key])
-
             self.controller_optim.step()
 
             '''for group in self.controller_optim.param_groups:
@@ -496,14 +498,16 @@ class Trainer(object):
                         # buf = param_state['momentum_buffer']'''
             # Take the exp_avg, and divide by (exp_avg_sq + eps)
             self.controller_prior_update = [
-                self.controller_optim.state[p]['exp_avg'].mul_(-self.controller_optim.param_groups[0]['lr']).div_(self.controller_optim.state[p]['exp_avg_sq'].sqrt().add_(self.controller_optim.param_groups[0]['eps']))
+                self.controller_optim.state[p]['exp_avg'].mul_(-self.controller_optim.param_groups[0]['lr']).div_(
+                    self.controller_optim.state[p]['exp_avg_sq'].sqrt().add_(
+                        self.controller_optim.param_groups[0]['eps']))
                 if 'exp_avg' in self.controller_optim.state[p] else None
                 for p in self.controller_optim.param_groups[0]['params']]
 
             # RESTORE SHARED PARAMETERS
             for key, p in enumerate(self.shared_optim.param_groups[0]['params']):
                 if self.shared_prior_update[key] is not None:
-                   p.data.add_(-1, self.shared_prior_update[key])
+                    p.data.add_(-1, self.shared_prior_update[key])
 
             total_loss += utils.to_item(loss.data)
 
