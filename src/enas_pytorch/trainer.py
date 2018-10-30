@@ -321,8 +321,7 @@ class Trainer(object):
                 abs_max_hidden_norm = new_abs_max_hidden_norm
                 logger.info(f'max hidden {abs_max_hidden_norm}')
             abs_max_grad = _check_abs_max_grad(abs_max_grad, model)
-            torch.nn.utils.clip_grad_norm(model.parameters(),
-                                          self.args.shared_grad_clip)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), self.args.shared_grad_clip)
 
             # UPDATE SHARED PARAMETERS TEMPORARILY
             if self.controller_prior_update is not None:  # The first iteration is none

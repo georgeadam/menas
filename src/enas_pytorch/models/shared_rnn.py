@@ -366,11 +366,11 @@ class RNN(models.shared_base.SharedModel):
         if name == 'relu':
             f = F.relu
         elif name == 'tanh':
-            f = F.tanh
+            f = torch.tanh
         elif name == 'identity':
             f = lambda x: x
         elif name == 'sigmoid':
-            f = F.sigmoid
+            f = torch.sigmoid
         return f
 
     def get_num_cell_parameters(self, dag):
