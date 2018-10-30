@@ -1,11 +1,10 @@
 import argparse
-from src.enas_pytorch.utils import get_logger
-
-from settings import ROOT_DIR
-ROOT_DIR += '/src/enas_pytorch'
+from utils import get_logger
 
 from dotenv import  find_dotenv, load_dotenv
 import os
+
+ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 logger = get_logger()
 
@@ -23,7 +22,7 @@ def add_argument_group(name):
 
 # Network
 net_arg = add_argument_group('Network')
-net_arg.add_argument('--network_type', type=str, choices=['rnn', 'cnn'], default='cnn')
+net_arg.add_argument('--network_type', type=str, choices=['rnn', 'cnn'], default='rnn')
 
 # Controller
 net_arg.add_argument('--num_blocks', type=int, default=12)
@@ -72,7 +71,7 @@ net_arg.add_argument('--cnn_hid', type=int, default=64)
 
 # Data
 data_arg = add_argument_group('Data')
-data_arg.add_argument('--dataset', type=str, default='mnist')
+data_arg.add_argument('--dataset', type=str, default='ptb')
 
 
 # Training / test parameters
