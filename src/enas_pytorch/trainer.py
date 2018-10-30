@@ -471,9 +471,9 @@ class Trainer(object):
                                               self.args.controller_grad_clip)
 
             # UPDATE SHARED PARAMETERS TEMPORARILY
-            for key, p in enumerate(self.shared_optim.param_groups[0]['params']):
-                if self.shared_prior_update[key] is not None:
-                    p.data.add_(1, self.shared_prior_update[key])
+            #for key, p in enumerate(self.shared_optim.param_groups[0]['params']):
+            #    if self.shared_prior_update[key] is not None:
+            #        p.data.add_(1, self.shared_prior_update[key])
 
             self.controller_optim.step()
 
@@ -487,10 +487,10 @@ class Trainer(object):
                         print("Controller: Exp_avg!")
                         # buf = param_state['momentum_buffer']'''
             # Take the exp_avg, and divide by (exp_avg_sq + eps)
-            self.controller_prior_update = [
-                self.controller_optim.state[p]['exp_avg'].mul_(-self.controller_optim.param_groups[0]['lr']).div_(self.controller_optim.state[p]['exp_avg_sq'].sqrt().add_(self.controller_optim.param_groups[0]['eps']))
-                if 'exp_avg' in self.controller_optim.state[p] else None
-                for p in self.controller_optim.param_groups[0]['params']]
+            #self.controller_prior_update = [
+            #    self.controller_optim.state[p]['exp_avg'].mul_(-self.controller_optim.param_groups[0]['lr']).div_(self.controller_optim.state[p]['exp_avg_sq'].sqrt().add_(self.controller_optim.param_groups[0]['eps']))
+            #    if 'exp_avg' in self.controller_optim.state[p] else None
+            #    for p in self.controller_optim.param_groups[0]['params']]
 
             # RESTORE SHARED PARAMETERS
             for key, p in enumerate(self.shared_optim.param_groups[0]['params']):
