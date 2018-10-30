@@ -355,11 +355,11 @@ class Trainer(object):
             # if 'momentum_buffer' in self.shared_optim.state[p] else None
             # for p in self.shared_optim.param_groups[0]['params']]
 
-            # RESTORE SHARED PARAMETERS
-            # if self.controller_prior_update is not None:  # The first iteration is none
-            #    for key, p in enumerate(self.controller_optim.param_groups[0]['params']):
-            #        if self.controller_prior_update[key] is not None:
-            #            p.data.add_(-1, self.controller_prior_update[key])
+            #RESTORE SHARED PARAMETERS
+            if self.controller_prior_update is not None:  # The first iteration is none
+                for key, p in enumerate(self.controller_optim.param_groups[0]['params']):
+                    if self.controller_prior_update[key] is not None:
+                        p.data.add_(-1, self.controller_prior_update[key])
 
             total_loss += loss.data
 
