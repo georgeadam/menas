@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "main.py", line 7, in <module>
+    import config as config
+  File "/h/alexadam/Documents/research/menas/src/enas_pytorch/config.py", line 4, in <module>
+    from settings import ROOT_DIR
+ModuleNotFoundError: No module named 'settings'

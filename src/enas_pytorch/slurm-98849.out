@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "main.py", line 7, in <module>
+    import config as config
+  File "/h/alexadam/Documents/research/menas/src/enas_pytorch/config.py", line 2, in <module>
+    from src.enas_pytorch.utils import get_logger
+ModuleNotFoundError: No module named 'src'

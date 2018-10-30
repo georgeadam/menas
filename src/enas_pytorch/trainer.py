@@ -15,6 +15,11 @@ from torch.autograd import Variable
 import models
 import utils
 
+from models.shared_rnn import RNN
+from models.shared_cnn import CNN
+from models.controller import Controller
+
+
 
 logger = utils.get_logger()
 
@@ -180,14 +185,15 @@ class Trainer(object):
     def build_model(self):
         """Creates and initializes the shared and controller models."""
         if self.args.network_type == 'rnn':
-            self.shared = models.RNN(self.args, self.dataset)
+            self.shared = RNN(self.args, self.dataset)
         elif self.args.network_type == 'cnn':
-            self.shared = models.CNN(self.args, self.dataset)
+            self.shared = CNN(self.args, self.dataset)
         else:
             raise NotImplementedError(f'Network type '
                                       f'`{self.args.network_type}` is not '
                                       f'defined')
-        self.controller = models.Controller(self.args)
+
+        self.controller = Controller(self.args)
 
         if self.args.num_gpu == 1:
             self.shared.cuda()

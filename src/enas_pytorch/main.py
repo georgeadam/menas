@@ -1,18 +1,12 @@
 """Entry point."""
-import os
-
 import torch
 
-import sys
-sys.path.insert(-1, os.path.abspath("."))
-sys.path.insert(-1, os.path.abspath(".."))
-sys.path.insert(-1, os.path.abspath("../.."))
+from data.image import Image
+from data.text import Corpus
 
-import src.enas_pytorch.data.image
-import src.enas_pytorch.data as data
-import src.enas_pytorch.config as config
-import src.enas_pytorch.utils as utils
-import src.enas_pytorch.trainer as trainer
+import config as config
+import trainer as trainer
+import utils as utils
 
 logger = utils.get_logger()
 
@@ -28,9 +22,9 @@ def main(args):  # pylint:disable=redefined-outer-name
         torch.backends.cudnn.deterministic = True
 
     if args.network_type == 'rnn':
-        dataset = data.text.Corpus(args.data_path)
+        dataset = Corpus(args.data_path)
     elif args.network_type == 'cnn':
-        dataset = data.image.Image(args)
+        dataset = Image(args)
     else:
         raise NotImplementedError(f"{args.dataset} is not supported")
 
