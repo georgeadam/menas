@@ -295,7 +295,7 @@ class RNN(models.shared_base.SharedModel):
         f = {}
 
         f[0] = self.get_f(dag[-1][0].name)
-        c[0] = F.sigmoid(self.w_xc(x) + F.linear(h_prev, self.w_hc, None))
+        c[0] = torch.sigmoid(self.w_xc(x) + F.linear(h_prev, self.w_hc, None))
         h[0] = (c[0]*f[0](self.w_xh(x) + F.linear(h_prev, self.w_hh, None)) +
                 (1 - c[0])*h_prev)
 
@@ -334,7 +334,7 @@ class RNN(models.shared_base.SharedModel):
                 w_c = self.w_c[node_id][next_id]
 
                 f[next_id] = self.get_f(next_node.name)
-                c[next_id] = F.sigmoid(w_c(h[node_id]))
+                c[next_id] = torch.sigmoid(w_c(h[node_id]))
                 h[next_id] = (c[next_id]*f[next_id](w_h(h[node_id])) +
                               (1 - c[next_id])*h[node_id])
 
