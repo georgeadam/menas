@@ -344,10 +344,10 @@ class Trainer(object):
                     else:
                         print("Shared: Buffer!")
                         # buf = param_state['momentum_buffer']'''
-            self.shared_prior_update = [
-                self.shared_optim.state[p]['momentum_buffer'].mul_(-self.shared_optim.param_groups[0]['lr'])
-                if 'momentum_buffer' in self.shared_optim.state[p] else None
-                for p in self.shared_optim.param_groups[0]['params']]
+            #self.shared_prior_update = [
+            #    self.shared_optim.state[p]['momentum_buffer'].mul_(-self.shared_optim.param_groups[0]['lr'])
+            #    if 'momentum_buffer' in self.shared_optim.state[p] else None
+            #    for p in self.shared_optim.param_groups[0]['params']]
 
             #RESTORE SHARED PARAMETERS
             #if self.controller_prior_update is not None:  # The first iteration is none
@@ -497,9 +497,9 @@ class Trainer(object):
             #    for p in self.controller_optim.param_groups[0]['params']]
 
             # RESTORE SHARED PARAMETERS
-            for key, p in enumerate(self.shared_optim.param_groups[0]['params']):
-                if self.shared_prior_update[key] is not None:
-                   p.data.add_(-1, self.shared_prior_update[key])
+            #for key, p in enumerate(self.shared_optim.param_groups[0]['params']):
+            #   if self.shared_prior_update[key] is not None:
+            #      p.data.add_(-1, self.shared_prior_update[key])
 
             total_loss += utils.to_item(loss.data)
 
