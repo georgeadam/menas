@@ -184,8 +184,7 @@ class Controller(torch.nn.Module):
             entropy = -(log_prob * probs).sum(1, keepdim=False)
 
             action = probs.multinomial(num_samples=1).data
-            selected_log_prob = log_prob.gather(
-                1, utils.get_variable(action, requires_grad=False))
+            selected_log_prob = log_prob.gather(1, utils.get_variable(action, requires_grad=False))
 
             # TODO(brendan): why the [:, 0] here? Should it be .squeeze(), or
             # .view()? Same below with `action`.
