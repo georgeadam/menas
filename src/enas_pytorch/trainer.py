@@ -300,10 +300,10 @@ class Trainer(object):
             if step > max_step:
                 break
 
-            if self.controller_prior_update is not None:  # The first iteration is none
+            '''if self.controller_prior_update is not None:  # The first iteration is none
                 for key, p in enumerate(self.controller_optim.param_groups[0]['params']):
                     if self.controller_prior_update[key] is not None:
-                        p.data.add_(1, self.controller_prior_update[key])
+                        p.data.add_(1, self.controller_prior_update[key])'''
 
             dags = self.controller.sample(self.args.shared_num_sample)
             inputs, targets = self.get_batch(self.train_data,
@@ -355,11 +355,11 @@ class Trainer(object):
             # if 'momentum_buffer' in self.shared_optim.state[p] else None
             # for p in self.shared_optim.param_groups[0]['params']]
 
-            #RESTORE SHARED PARAMETERS
+            '''#RESTORE SHARED PARAMETERS
             if self.controller_prior_update is not None:  # The first iteration is none
                 for key, p in enumerate(self.controller_optim.param_groups[0]['params']):
                     if self.controller_prior_update[key] is not None:
-                        p.data.add_(-1, self.controller_prior_update[key])
+                        p.data.add_(-1, self.controller_prior_update[key])'''
 
             total_loss += loss.data
 
@@ -432,10 +432,10 @@ class Trainer(object):
         total_loss = 0
         valid_idx = 0
         for step in range(self.args.controller_max_step):
-            # UPDATE SHARED PARAMETERS TEMPORARILY
+            '''# UPDATE SHARED PARAMETERS TEMPORARILY
             for key, p in enumerate(self.shared_optim.param_groups[0]['params']):
                 if self.shared_prior_update[key] is not None:
-                    p.data.add_(1, self.shared_prior_update[key])
+                    p.data.add_(1, self.shared_prior_update[key])'''
 
             # sample models
             dags, log_probs, entropies = self.controller.sample(
@@ -504,10 +504,10 @@ class Trainer(object):
                 if 'exp_avg' in self.controller_optim.state[p] else None
                 for p in self.controller_optim.param_groups[0]['params']]
 
-            # RESTORE SHARED PARAMETERS
+            '''# RESTORE SHARED PARAMETERS
             for key, p in enumerate(self.shared_optim.param_groups[0]['params']):
                 if self.shared_prior_update[key] is not None:
-                    p.data.add_(-1, self.shared_prior_update[key])
+                    p.data.add_(-1, self.shared_prior_update[key])'''
 
             total_loss += utils.to_item(loss.data)
 
