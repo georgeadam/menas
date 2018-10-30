@@ -170,11 +170,7 @@ class Trainer(object):
         shared_optimizer = _get_optimizer(self.args.shared_optim)
         controller_optimizer = _get_optimizer(self.args.controller_optim)
 
-        self.shared_optim = controller_optimizer(
-            self.shared.parameters(),
-            weight_decay=self.args.shared_l2_reg,
-            lr=self.args.controller_lr)
-        '''shared_optimizer(
+        self.shared_optim = shared_optimizer(
             self.shared.parameters(),
             lr=self.shared_lr / 50.0,
             weight_decay=self.args.shared_l2_reg,
