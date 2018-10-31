@@ -14,7 +14,7 @@ parser.add_argument("--title", type=str, default="")
 if __name__ == "__main__":
     args = parser.parse_args()
 
-    paths = glob(f"./logs/{args.model_name}/networks/*.png-best")
+    paths = glob(f"./logs/{args.model_name}/networks/*-best.png")
     print(paths)
     make_gif(paths, args.output,
             max_frame=args.max_frame,
