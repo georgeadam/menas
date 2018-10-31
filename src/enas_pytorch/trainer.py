@@ -392,7 +392,44 @@ class Trainer(object):
         else:
             raise NotImplementedError(f'Unkown entropy mode: {self.args.entropy_mode}')
 
-        return rewards, hidden
+        return rewards, hidden, valid_ppl
+
+    def get_perplexity_multibatch(self, source, dag, batch_size=1, max_num=None):
+        """
+        Computes the perplexity of a single sampled model on the entire validation dataset
+        Args:
+            dag:
+            entropies:
+            hidden:
+
+        Returns:
+
+        """
+        self.shared.eval()
+        self.controller.eval()
+
+        # data = source[:max_num * self.max_length]
+        data = source
+
+        total_loss = 0
+        hidden = self.shared.init_hidden(batch_size)
+
+        pbar = range(0, data.size(0) - 1, self.max_length)
+
+        for count, idx in enumerate(pbar):
+            inputs, targets = self.get_batch(data, idx, volatile=True)
+            output, hidden, _ = self.shared(inputs,
+                                            dag,
+                                            hidden=hidden,
+                                            is_train=False)
+            output_flat = output.view(-1, self.dataset.num_tokens)
+            total_loss += len(inputs) * self.ce(output_flat, targets).data
+            hidden.detach_()
+
+        val_loss = utils.to_item(total_loss) / len(data)
+        ppl = math.exp(val_loss)
+
+        return ppl
 
     def train_controller(self):
         """Fixes the shared parameters and updates the controller parameters.
@@ -431,7 +468,7 @@ class Trainer(object):
             # NOTE(brendan): No gradients should be backpropagated to the
             # shared model during controller training, obviously.
             with _get_no_grad_ctx_mgr():
-                rewards, hidden = self.get_reward(dags,
+                rewards, hidden, ppl = self.get_reward(dags,
                                                   np_entropies,
                                                   hidden,
                                                   valid_idx)
@@ -553,7 +590,7 @@ class Trainer(object):
         self.tb.scalar_summary(f'eval/{name}_ppl', ppl, self.epoch)
         logger.info(f'eval | loss: {val_loss:8.2f} | ppl: {ppl:8.2f}')
 
-    def derive(self, sample_num=None, valid_idx=0):
+    def derive(self, sample_num=None, valid_idx=0, create_image=True):
         """TODO(brendan): We are always deriving based on the very first batch
         of validation data? This seems wrong...
         """
@@ -568,19 +605,35 @@ class Trainer(object):
         max_R = 0
         best_dag = None
         for dag in dags:
-            R, _ = self.get_reward(dag, entropies, hidden, valid_idx)
+            R, _, ppl = self.get_reward(dag, entropies, hidden, valid_idx)
             if R.max() > max_R:
                 max_R = R.max()
                 best_dag = dag
 
         logger.info(f'derive | max_R: {max_R:8.6f}')
+        logger.info(f'derive | best PPL: {ppl:8.6f}')
         fname = (f'{self.epoch:03d}-{self.controller_step:06d}-'
                  f'{max_R:6.4f}-best.png')
-        path = os.path.join(self.args.model_dir, 'networks', fname)
-        utils.draw_network(best_dag, path)
-        self.tb.image_summary('derive/best', [path], self.epoch)
+
+        if create_image:
+            path = os.path.join(self.args.model_dir, 'networks', fname)
+            utils.draw_network(best_dag, path)
+            self.tb.image_summary('derive/best', [path], self.epoch)
 
         return best_dag
+
+    def test(self, sample_num=None, valid_idx=0):
+        # Sample a bunch of dags and get the one that performs best on the validation set
+        # Currently seems to be the case that it's just on the first batch of the validation set which is obviously
+        # not a reliable performance metric.
+        best_dag = self.derive(sample_num, valid_idx, False)
+
+        validation_perplexity = self.evaluate(self.eval_data, best_dag, "val_best", max_num=1)
+        test_perplexity = self.get_perplexity_multibatch(self.test_data, best_dag, max_num=1)
+
+        print("Averaged perplexity of best DAG on validation set is: {}".format(validation_perplexity))
+        print("Averaged perplexity of best DAG on test set is: {}".format(test_perplexity))
+
 
     @property
     def shared_lr(self):
@@ -661,8 +714,17 @@ class Trainer(object):
         else:
             map_location = None
 
-        self.shared.load_state_dict(
-            torch.load(self.shared_path, map_location=map_location))
+        state_dict = torch.load(self.shared_path)
+        new_state_dict = {}
+
+        if self.args.mode != "train":
+            for key, value in state_dict.items():
+                if "batch" in key or "norm" in key:
+                    pass
+                else:
+                    new_state_dict[key] = value
+
+        self.shared.load_state_dict(new_state_dict, strict=False)
         logger.info(f'[*] LOADED: {self.shared_path}')
 
         self.controller.load_state_dict(
