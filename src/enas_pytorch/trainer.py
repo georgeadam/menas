@@ -240,7 +240,7 @@ class Trainer(object):
                     self.evaluate(self.eval_data,
                                   best_dag,
                                   'val_best',
-                                  max_num=1)#self.args.batch_size * 100)
+                                  max_num=self.args.batch_size * 100)
                 self.save_model()
 
             if self.epoch >= self.args.shared_decay_after:
@@ -426,7 +426,7 @@ class Trainer(object):
 
         hidden = self.shared.init_hidden(self.args.batch_size)
         total_loss = 0
-        valid_idx = random.randint(0, self.valid_data.size(0) - 1)#0
+        valid_idx = random.randint(0, self.valid_data.size(0) - 1 - self.max_length)#0
         for step in range(self.args.controller_max_step):
             # sample models
             dags, log_probs, entropies = self.controller.sample(
