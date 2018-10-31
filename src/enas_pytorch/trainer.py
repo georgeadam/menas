@@ -295,10 +295,10 @@ class Trainer(object):
         step = 0
         raw_total_loss = 0
         total_loss = 0
-        train_idx = random.randint(0, self.train_data.size(0) - 1 - 1 - 1 - self.max_length*max_step
+        train_idx = random.randint(0, self.train_data.size(0) - 1 - 1 - 1 - self.max_length*max_step)
         # TODO(brendan): Why - 1 - 1?
         #for train_idx in [random.randint(0, self.train_data.size(0) - 1 - 1 - 1 - self.max_length)
-        #                 for _ in range(self.train_data.size(0) - 1 - 1)]: #while _ < self.train_data.size(0) - 1 - 1:
+        #               for _ in range(self.train_data.size(0) - 1 - 1)]: #while _ < self.train_data.size(0) - 1 - 1:
         for _ in range(self.train_data.size(0) - 1 - 1):
             if step > max_step:
                 break
