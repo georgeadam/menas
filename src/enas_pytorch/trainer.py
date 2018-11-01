@@ -171,16 +171,14 @@ class Trainer(object):
         shared_optimizer = _get_optimizer(self.args.shared_optim)
         controller_optimizer = _get_optimizer(self.args.controller_optim)
 
-        self.shared_optim = controller_optimizer(
+        self.shared_optim = shared_optimizer(
             self.shared.parameters(),
             weight_decay=self.args.shared_l2_reg,
             lr=self.args.controller_lr)
             #shared_optimizer(
             #self.shared.parameters(),
             #lr=self.shared_lr / 50.0,
-            #weight_decay=self.args.shared_l2_reg,
-            #momentum=0.9,
-            #nesterov=True)  # TODO: NOTE THAT I ADDED MOMENTUM AND NESTEROV HERE'''
+            #weight_decay=self.args.shared_l2_reg)  # TODO: NOTE THAT I ADDED MOMENTUM AND NESTEROV HERE'''
 
         self.controller_optim = controller_optimizer(
             self.controller.parameters(),
@@ -240,7 +238,7 @@ class Trainer(object):
                     self.evaluate(self.eval_data,
                                   best_dag,
                                   'val_best',
-                                  max_num=self.args.batch_size * 100)
+                                  max_num=self.args.batch_size) # * 100
                 self.save_model()
 
             if self.epoch >= self.args.shared_decay_after:
@@ -326,7 +324,7 @@ class Trainer(object):
                 h1tohT.norm(dim=-1).data.max())
             if new_abs_max_hidden_norm > abs_max_hidden_norm:
                 abs_max_hidden_norm = new_abs_max_hidden_norm
-                logger.info(f'max hidden {abs_max_hidden_norm}')
+                # logger.info(f'max hidden {abs_max_hidden_norm}')
             abs_max_grad = _check_abs_max_grad(abs_max_grad, model)
             torch.nn.utils.clip_grad_norm_(model.parameters(), self.args.shared_grad_clip)
 
@@ -596,7 +594,7 @@ class Trainer(object):
 
         self.tb.scalar_summary(f'eval/{name}_loss', val_loss, self.epoch)
         self.tb.scalar_summary(f'eval/{name}_ppl', ppl, self.epoch)
-        logger.info(f'eval | loss: {val_loss:8.2f} | ppl: {ppl:8.2f}')
+        logger.info(f'val eval | loss: {val_loss:8.2f} | ppl: {ppl:8.2f}')
 
     def derive(self, sample_num=None, valid_idx=0, create_image=True):
         """TODO(brendan): We are always deriving based on the very first batch
@@ -757,7 +755,7 @@ class Trainer(object):
             avg_reward_base = avg_reward
 
         logger.info(
-            f'| epoch {self.epoch:3d} | lr {self.controller_lr:.5f} '
+            f'controller | epoch {self.epoch:3d} | lr {self.controller_lr:.5f} '
             f'| R {avg_reward:.5f} | entropy {avg_entropy:.4f} '
             f'| loss {cur_loss:.5f}')
 
@@ -799,7 +797,7 @@ class Trainer(object):
         cur_raw_loss = utils.to_item(raw_total_loss) / self.args.log_step
         ppl = math.exp(cur_raw_loss)
 
-        logger.info(f'| epoch {self.epoch:3d} '
+        logger.info(f'train | epoch {self.epoch:3d} '
                     f'| lr {self.shared_lr:4.2f} '
                     f'| raw loss {cur_raw_loss:.2f} '
                     f'| loss {cur_loss:.2f} '
