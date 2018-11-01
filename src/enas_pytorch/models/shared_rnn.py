@@ -182,10 +182,13 @@ class RNN(models.shared_base.SharedModel):
                                    for idx in self.w_c
                                    for jdx in self.w_c[idx]])
 
-        if args.mode == 'train':
-            self.batch_norm = nn.BatchNorm1d(args.shared_hid)
-        else:
-            self.batch_norm = None
+        # TODO (Alex): This if statement screws up model evaluation at test time, so batch norm
+        # should always be enabled
+        # if args.mode == 'train':
+        #     self.batch_norm = nn.BatchNorm1d(args.shared_hid)
+        # else:
+        #     self.batch_norm = None
+        self.batch_norm = nn.BatchNorm1d(args.shared_hid)
 
         self.reset_parameters()
         self.static_init_hidden = utils.keydefaultdict(self.init_hidden)

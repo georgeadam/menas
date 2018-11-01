@@ -725,10 +725,11 @@ class Trainer(object):
 
         if self.args.mode != "train":
             for key, value in state_dict.items():
-                if "batch" in key or "norm" in key:
-                    pass
-                else:
-                    new_state_dict[key] = value
+                # TODO (Alex): We should load in batch norm params even when not training.
+                # if "batch" in key or "norm" in key:
+                #     pass
+                # else:
+                new_state_dict[key] = value
 
         self.shared.load_state_dict(new_state_dict, strict=False)
         logger.info(f'[*] LOADED: {self.shared_path}')
