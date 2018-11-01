@@ -40,7 +40,7 @@ net_arg.add_argument('--shared_embed', type=int, default=1000) # TODO: 200, 500,
 net_arg.add_argument('--shared_hid', type=int, default=1000)
 net_arg.add_argument('--shared_rnn_max_length', type=int, default=35)
 net_arg.add_argument('--shared_rnn_activations', type=eval,
-                     default="['tanh', 'ReLU', 'identity', 'sigmoid']")
+                     default="['ReLU', 'identity', 'sigmoid']") # TODO: CHANGED to remove tanh
 net_arg.add_argument('--shared_cnn_types', type=eval,
                      default="['3x3', '5x5', 'sep 3x3', 'sep 5x5', 'max 3x3', 'max 5x5']")
 
