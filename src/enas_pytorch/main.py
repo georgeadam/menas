@@ -7,7 +7,7 @@ import torch
 from data.image import Image
 from data.text import Corpus
 
-import config as config
+import config_ours as config
 import trainer as trainer
 import utils as utils
 
