@@ -174,7 +174,9 @@ class Trainer(object):
         self.shared_optim = shared_optimizer(
             self.shared.parameters(),
             weight_decay=self.args.shared_l2_reg,
-            lr=self.args.controller_lr)
+            lr=self.args.controller_lr,
+            momentum=0.9,
+            nesterov=True)
             #shared_optimizer(
             #self.shared.parameters(),
             #lr=self.shared_lr / 50.0,

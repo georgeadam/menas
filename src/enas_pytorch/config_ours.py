@@ -94,7 +94,7 @@ learn_arg.add_argument('--reward_c', type=int, default=80,
 # NOTE(brendan): irrelevant for actor critic.
 learn_arg.add_argument('--ema_baseline_decay', type=float, default=0.95) # TODO: very important
 learn_arg.add_argument('--discount', type=float, default=1.0) # TODO
-learn_arg.add_argument('--controller_max_step', type=int, default=20,
+learn_arg.add_argument('--controller_max_step', type=int, default=50,
                        help='step for controller parameters')  # TODO: Changed from 2000 to 1
 learn_arg.add_argument('--controller_optim', type=str, default='adam')
 learn_arg.add_argument('--controller_lr', type=float, default=3.5e-4,
