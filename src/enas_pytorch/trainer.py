@@ -240,7 +240,7 @@ class Trainer(object):
                     self.evaluate(self.eval_data,
                                   best_dag,
                                   'val_best',
-                                  max_num=self.args.batch_size * 100)
+                                  max_num=self.args.batch_size)
                 self.save_model()
 
             if self.epoch >= self.args.shared_decay_after:
@@ -757,7 +757,7 @@ class Trainer(object):
             avg_reward_base = avg_reward
 
         logger.info(
-            f'| epoch {self.epoch:3d} | lr {self.controller_lr:.5f} '
+            f'controller | epoch {self.epoch:3d} | lr {self.controller_lr:.5f} '
             f'| R {avg_reward:.5f} | entropy {avg_entropy:.4f} '
             f'| loss {cur_loss:.5f}')
 
