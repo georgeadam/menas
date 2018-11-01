@@ -240,7 +240,7 @@ class Trainer(object):
                     self.evaluate(self.eval_data,
                                   best_dag,
                                   'val_best',
-                                  max_num=self.args.batch_size)
+                                  max_num=self.args.batch_size) # * 100
                 self.save_model()
 
             if self.epoch >= self.args.shared_decay_after:
@@ -326,7 +326,7 @@ class Trainer(object):
                 h1tohT.norm(dim=-1).data.max())
             if new_abs_max_hidden_norm > abs_max_hidden_norm:
                 abs_max_hidden_norm = new_abs_max_hidden_norm
-                logger.info(f'max hidden {abs_max_hidden_norm}')
+                # logger.info(f'max hidden {abs_max_hidden_norm}')
             abs_max_grad = _check_abs_max_grad(abs_max_grad, model)
             torch.nn.utils.clip_grad_norm_(model.parameters(), self.args.shared_grad_clip)
 
