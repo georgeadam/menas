@@ -596,7 +596,7 @@ class Trainer(object):
 
         self.tb.scalar_summary(f'eval/{name}_loss', val_loss, self.epoch)
         self.tb.scalar_summary(f'eval/{name}_ppl', ppl, self.epoch)
-        logger.info(f'eval | loss: {val_loss:8.2f} | ppl: {ppl:8.2f}')
+        logger.info(f'val eval | loss: {val_loss:8.2f} | ppl: {ppl:8.2f}')
 
     def derive(self, sample_num=None, valid_idx=0, create_image=True):
         """TODO(brendan): We are always deriving based on the very first batch
@@ -799,7 +799,7 @@ class Trainer(object):
         cur_raw_loss = utils.to_item(raw_total_loss) / self.args.log_step
         ppl = math.exp(cur_raw_loss)
 
-        logger.info(f'| epoch {self.epoch:3d} '
+        logger.info(f'train | epoch {self.epoch:3d} '
                     f'| lr {self.shared_lr:4.2f} '
                     f'| raw loss {cur_raw_loss:.2f} '
                     f'| loss {cur_loss:.2f} '

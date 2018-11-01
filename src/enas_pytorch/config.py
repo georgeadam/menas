@@ -94,7 +94,7 @@ learn_arg.add_argument('--reward_c', type=int, default=80,
 # NOTE(brendan): irrelevant for actor critic.
 learn_arg.add_argument('--ema_baseline_decay', type=float, default=0.95) # TODO: very important
 learn_arg.add_argument('--discount', type=float, default=1.0) # TODO
-learn_arg.add_argument('--controller_max_step', type=int, default=40,
+learn_arg.add_argument('--controller_max_step', type=int, default=20,
                        help='step for controller parameters')  # TODO: Changed from 2000 to 1
 learn_arg.add_argument('--controller_optim', type=str, default='adam')
 learn_arg.add_argument('--controller_lr', type=float, default=3.5e-4,
@@ -118,7 +118,7 @@ learn_arg.add_argument('--shared_max_step', type=int, default=20,
 learn_arg.add_argument('--shared_num_sample', type=int, default=1,
                        help='# of Monte Carlo samples')
 learn_arg.add_argument('--shared_optim', type=str, default='sgd')
-learn_arg.add_argument('--shared_lr', type=float, default=20.0)
+learn_arg.add_argument('--shared_lr', type=float, default=10.0)
 learn_arg.add_argument('--shared_decay', type=float, default=0.96)
 learn_arg.add_argument('--shared_decay_after', type=float, default=15 * (10e8))  # TODO: THIS SHOULD CHANGE, SINCE I CHANGED NUMBER OF ITERATIONS
 learn_arg.add_argument('--shared_l2_reg', type=float, default=1e-7)
@@ -131,7 +131,7 @@ learn_arg.add_argument('--derive_num_sample', type=int, default=100)
 # Misc
 misc_arg = add_argument_group('Misc')
 misc_arg.add_argument('--load_path', type=str, default='')
-misc_arg.add_argument('--log_step', type=int, default=20)
+misc_arg.add_argument('--log_step', type=int, default=10)
 misc_arg.add_argument('--save_epoch', type=int, default=250)
 misc_arg.add_argument('--max_save_num', type=int, default=4)
 misc_arg.add_argument('--log_level', type=str, default='INFO', choices=['INFO', 'DEBUG', 'WARN'])
