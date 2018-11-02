@@ -174,9 +174,7 @@ class Trainer(object):
         self.shared_optim = shared_optimizer(
             self.shared.parameters(),
             weight_decay=self.args.shared_l2_reg,
-            lr=self.args.controller_lr,
-            momentum=0.9,
-            nesterov=True)
+            lr=self.args.controller_lr)
             #shared_optimizer(
             #self.shared.parameters(),
             #lr=self.shared_lr / 50.0,
@@ -296,7 +294,6 @@ class Trainer(object):
         raw_total_loss = 0
         total_loss = 0
         train_idx = random.randint(0, self.train_data.size(0) - 1 - 1 - 1 - self.max_length*max_step)
-        # TODO: I CHANGED TRAIN_IDX TO SAMPLE RANDOMLY
         # TODO(brendan): Why - 1 - 1?
         #for train_idx in [random.randint(0, self.train_data.size(0) - 1 - 1 - 1 - self.max_length)
         #               for _ in range(self.train_data.size(0) - 1 - 1)]: #while _ < self.train_data.size(0) - 1 - 1:
@@ -466,7 +463,6 @@ class Trainer(object):
         hidden = self.shared.init_hidden(self.args.batch_size)
         total_loss = 0
         valid_idx = random.randint(0, self.valid_data.size(0) - 1 - self.max_length)#0
-        # TODO: I CHANGED VALID_IDX TO SAMPLE RANDOM
         for step in range(self.args.controller_max_step):
             # sample models
             dags, log_probs, entropies = self.controller.sample(
@@ -560,8 +556,10 @@ class Trainer(object):
 
             prev_valid_idx = valid_idx
             valid_idx = ((valid_idx + self.max_length) % (self.valid_data.size(0) - 1))
+            # TODO: I CHANGED THIS.
             # NOTE(brendan): Whenever we wrap around to the beginning of the
             # validation data, we reset the hidden states.
+            # TODO: I TOOK OUT HIDDEN RESET
             if prev_valid_idx > valid_idx:
                 hidden = self.shared.init_hidden(self.args.batch_size)
 
@@ -597,6 +595,8 @@ class Trainer(object):
         self.tb.scalar_summary(f'eval/{name}_loss', val_loss, self.epoch)
         self.tb.scalar_summary(f'eval/{name}_ppl', ppl, self.epoch)
         logger.info(f'val eval | loss: {val_loss:8.2f} | ppl: {ppl:8.2f}')
+
+        return ppl
 
     def derive(self, sample_num=None, valid_idx=0, create_image=True):
         """TODO(brendan): We are always deriving based on the very first batch
@@ -636,8 +636,8 @@ class Trainer(object):
         # not a reliable performance metric.
         best_dag = self.derive(sample_num, valid_idx, False)
 
-        validation_perplexity = self.evaluate(self.eval_data, best_dag, "val_best", max_num=1)
-        test_perplexity = self.get_perplexity_multibatch(self.test_data, best_dag, max_num=1)
+        validation_perplexity = self.get_perplexity_multibatch(self.eval_data, best_dag)
+        test_perplexity = self.get_perplexity_multibatch(self.test_data, best_dag)
 
         print("Averaged perplexity of best DAG on validation set is: {}".format(validation_perplexity))
         print("Averaged perplexity of best DAG on test set is: {}".format(test_perplexity))
