@@ -4,8 +4,8 @@ import torch
 from data.image import Image
 from data.text import Corpus
 
-import config_ours as config
-import trainer as trainer
+from configs import config_ours as config
+from train_scripts import regular_trainer as trainer
 import utils as utils
 
 from models.controller import Node

@@ -1,14 +1,11 @@
 """Entry point."""
 import torch
 
-#import sys, os
-#sys.path.append(os.path.join(os.path.dirname(__file__)))
-
 from data.image import Image
 from data.text import Corpus
 
-import config_ours as config
-import trainer as trainer
+from configs import config_ours as config
+from train_scripts import regular_trainer as trainer
 import utils as utils
 
 logger = utils.get_logger()
@@ -50,6 +47,6 @@ def main(args):  # pylint:disable=redefined-outer-name
 if __name__ == "__main__":
     args, unparsed = config.get_args()
     main(args)
-    # srun --gres=gpu:1 -c 2 -l -w dgx1 -p gpuc python main.py --mode test --load_path ptb_2018-10-30_20-42-11 --num_gpu 1
-    # srun --gres=gpu:1 -c 2 -l -w dgx1 -p gpuc python main.py --network_type rnn --dataset ptb --controller_optim adam --controller_lr 0.00035 --shared_optim adam --shared_lr 0.00035 --entropy_coeff 0.0001 --num_gpu 1
-    # python main.py --network_type rnn --dataset ptb --controller_optim adam --controller_lr 0.00035 --shared_optim adam --shared_lr 0.00035 --entropy_coeff 0.0001 --num_gpu 0
+    # srun --gres=gpu:1 -c 2 -l -w dgx1 -p gpuc python train_regular.py --mode test --load_path ptb_2018-10-30_20-42-11 --num_gpu 1
+    # srun --gres=gpu:1 -c 2 -l -w dgx1 -p gpuc python train_regular.py --network_type rnn --dataset ptb --controller_optim adam --controller_lr 0.00035 --shared_optim adam --shared_lr 0.00035 --entropy_coeff 0.0001 --num_gpu 1
+    # python train_regular.py --network_type rnn --dataset ptb --controller_optim adam --controller_lr 0.00035 --shared_optim adam --shared_lr 0.00035 --entropy_coeff 0.0001 --num_gpu 0

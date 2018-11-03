@@ -255,6 +255,10 @@ class Trainer(object):
 
         loss = 0
         for dag in dags:
+            # TODO (Alex): Hidden shouldn't be updated after evaluating each DAG.
+            # This is likely as mistake, and hidden should probably be replaced with _
+            # Also, the extra_out that's being returned is only for the last DAG in the loop.
+            # This doesn't seem like correct behaviour either.
             output, hidden, extra_out = self.shared(inputs, dag, hidden=hidden)
             output_flat = output.view(-1, self.dataset.num_tokens)
             sample_loss = (self.ce(output_flat, targets) /

@@ -218,7 +218,7 @@ def prepare_dirs(args):
             else:
                 args.model_name = "{}_{}".format(args.dataset, args.load_path)
     else:
-        args.model_name = "{}_{}".format(args.dataset, get_time())
+        args.model_name = "{}_{}_{}".format(args.dataset, args.train_type, get_time())
 
     if not hasattr(args, 'model_dir'):
         args.model_dir = os.path.join(args.log_dir, args.model_name)

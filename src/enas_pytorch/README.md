@@ -59,7 +59,7 @@ To generate `gif` image of generated samples:
 
     python generate_gif.py --model_name=ptb_2018-02-15_11-20-02 --output=sample.gif
 
-More configurations can be found [here](config_ours.py).
+More configurations can be found [here](configs/config_ours.py).
 
 
 ## Results
