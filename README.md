@@ -41,45 +41,59 @@ From Meeting:
 * Get KFAC code?
 
 ## Getting Started
-
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
-
-### Prerequisites
-
-What things you need to install the software and how to install them
-
+If deploying in a remote location (ex. lorraine@cluster12.ais.sandbox):
 ```
-Give examples
+ssh <user@location>
 ```
 
-### Installing
-
-A step by step series of examples that tell you how to get a development env running
-
-Say what the step will be
-
+Clone the repository:
 ```
-Give the example
+git clone https://github.com/georgeadam/menas.git
 ```
 
-And repeat
-
+Create an python 3.6+ environment - for example with conda:
 ```
-until finished
+conda create --name py36 python=3.6
 ```
 
-End with an example of getting some data out of the system or using it for a little demo
-
-## Running the tests
-
-Explain how to run the automated tests for this system
-
-### Break down into end to end tests
-
-Explain what these tests test and why
-
+Inside of the python environment install the requirements:
 ```
-Give an example
+pip install -r requirements.txt
+```
+
+Experiments can be run from the `menas/src/enas_pytorch` directory:
+```
+python python train_scripts/train_regular.py --network_type rnn --dataset ptb -entropy_coeff 0.0001 --num_gpu 0
+```
+
+Or deployed to the cluster with:
+```
+srun --gres=gpu:1 -c 2 -l -w dgx1 -p gpuc <COMMAND>
+```
+
+Combined:
+```
+srun --gres=gpu:1 -c 2 -l -w dgx1 -p gpuc python python train_scripts/train_regular.py --network_type rnn --dataset ptb -entropy_coeff 0.0001 --num_gpu 1
+```
+
+To make gifs:
+```
+python generate_gif.py --model_name=<dir> --output=sample.gif
+```
+
+To launch tensorboard:
+```
+tensorboard --logdir=logs --port=6006
+```
+
+And connect ports on local machine:
+```
+ssh -N -f -L localhost:16006:localhost:6006 <user@remote>
+```
+
+Then go to the following on the local machine:
+```
+http://localhost:16006
 ```
 
 
