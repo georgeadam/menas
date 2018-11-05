@@ -29,6 +29,41 @@ except:
     imsave = imwrite = cv2.imwrite
 
 
+import sys, os
+def slurmify(f):
+    """Use this to run the same python script in SLURM.  We use "slurmed" as a reserved keyword to see if the function
+    has been invoked via this decorator.
+    This assumes that you have a tmux session with allocated resources (ex. an interactive session from slurm).
+    For example, this can be done with `srun --gres=gpu:0 -c 2 -l -w dgx1 -p gpuc --pty bash -i`.
+    Additionally, you must have a path to a desired python interpreter.
+    You can start a tmux session with `tmux new -s <name>` or attach to a tmux session with `tmux a -t <name>`.
+
+
+    :return: The function to be executed in the correct environment.
+    """
+    python_path = "/ais/gobi5/lorraine/anaconda3/envs/py36/bin/python"
+    session_name = 'menas'
+    if 'slurmed' not in sys.argv:  # Redirect to slurm if no arguments
+        command0 = 'tmux send-keys -t ' + session_name + ':0 C-c'
+        os.system(command0)
+        os.system(command0)  # Send twice to cancel any current jobs.
+
+        command = 'tmux send-keys -t ' + session_name + ':0 C-z \''
+        command += python_path + ' ' + sys.argv[0]
+        for argument in sys.argv[1:]:
+            command += " " + argument
+        command += " slurmed"
+        command += "\' Enter"
+        print(f"Running {command} in tmux...")
+        os.system(command)
+
+        command2 = "tmux select-window -t " + session_name + ":0"
+        command3 = "tmux attach-session -t " + session_name
+        os.system(command2)  # Attach to the window
+        return os.system(command3)
+    else:
+        return f
+
 ##########################
 # Network visualization
 ##########################
