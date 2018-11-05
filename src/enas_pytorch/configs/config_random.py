@@ -100,13 +100,13 @@ learn_arg.add_argument('--entropy_coeff', type=float, default=1e-4)
 # Shared parameters
 learn_arg.add_argument('--shared_initial_step', type=int, default=0
                        )  # TODO: Changed from 0 to 399
-learn_arg.add_argument('--shared_max_step', type=int, default=20,
+learn_arg.add_argument('--shared_max_step', type=int, default=400,
                        help='step for shared parameters') # TODO: CHANGED FROM 400 to 1
 # NOTE(brendan): Should be 10 for CNN architectures.
 learn_arg.add_argument('--shared_num_sample', type=int, default=1,
                        help='# of Monte Carlo samples')
-learn_arg.add_argument('--shared_optim', type=str, default='sgd')
-learn_arg.add_argument('--shared_lr', type=float, default=10.0)
+learn_arg.add_argument('--shared_optim', type=str, default='adam')
+learn_arg.add_argument('--shared_lr', type=float, default=0.00035)
 learn_arg.add_argument('--shared_decay', type=float, default=0.96)
 learn_arg.add_argument('--shared_decay_after', type=float, default=int(15 * (2000 / 50)))  # TODO: THIS SHOULD CHANGE, SINCE I CHANGED NUMBER OF ITERATIONS
 learn_arg.add_argument('--shared_l2_reg', type=float, default=1e-7)
@@ -127,7 +127,7 @@ misc_arg.add_argument('--log_dir', type=str, default='logs')
 misc_arg.add_argument('--data_dir', type=str, default='data')
 misc_arg.add_argument('--num_gpu', type=int, default=1)
 misc_arg.add_argument('--num-workers', type=int, default=2)
-misc_arg.add_argument('--random_seed', type=int, default=12345)
+misc_arg.add_argument('--random_seed', type=int, default=555)
 misc_arg.add_argument('--use_tensorboard', type=str2bool, default=True)
 misc_arg.add_argument("--train_type", type=str, default="random")
 
