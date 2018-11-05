@@ -220,7 +220,7 @@ class RandomTrainer(object):
             if self.epoch >= self.args.shared_decay_after:
                 utils.update_lr(self.shared_optim, self.shared_lr)
 
-    def get_loss(self, inputs, targets, hidden, dags):
+    def get_loss(self, inputs, targets, hidden, dags, is_train=True):
         """Computes the loss for the same batch for M models.
 
         This amounts to an estimate of the loss, which is turned into an
@@ -235,7 +235,8 @@ class RandomTrainer(object):
             # This is likely as mistake, and hidden should probably be replaced with _
             # Also, the extra_out that's being returned is only for the last DAG in the loop.
             # This doesn't seem like correct behaviour either.
-            output, hidden, extra_out = self.shared(inputs, dag, hidden=hidden)
+            output, hidden, extra_out = self.shared(inputs, dag, hidden=hidden,
+                                                    is_train=is_train)
             output_flat = output.view(-1, self.dataset.num_tokens)
             sample_loss = (self.ce(output_flat, targets) /
                            self.args.shared_num_sample)
@@ -286,7 +287,8 @@ class RandomTrainer(object):
             loss, hidden, extra_out = self.get_loss(inputs,
                                                     targets,
                                                     hidden,
-                                                    dags)
+                                                    dags,
+                                                    is_train=True)
             hidden.detach_()
             raw_total_loss += loss.data
 
@@ -326,7 +328,7 @@ class RandomTrainer(object):
                                          valid_idx,
                                          self.max_length,
                                          volatile=True)
-        valid_loss, hidden, _ = self.get_loss(inputs, targets, hidden, dag)
+        valid_loss, hidden, _ = self.get_loss(inputs, targets, hidden, dag, is_train=False)
         valid_loss = utils.to_item(valid_loss.data)
 
         valid_ppl = math.exp(valid_loss)
@@ -391,7 +393,6 @@ class RandomTrainer(object):
             output_flat = output.view(-1, self.dataset.num_tokens)
             total_loss += len(inputs) * self.ce(output_flat, targets).data
             hidden.detach_()
-            ppl = math.exp(utils.to_item(total_loss) / (count + 1) / self.max_length)
 
         val_loss = utils.to_item(total_loss) / len(data)
         ppl = math.exp(val_loss)
@@ -406,7 +407,9 @@ class RandomTrainer(object):
         """TODO(brendan): We are always deriving based on the very first batch
         of validation data? This seems wrong...
         """
+        self.shared.eval()
         hidden = self.shared.init_hidden(self.args.batch_size)
+        # hidden = self.shared.init_hidden(1) # since we are only evaluating on a single batch of data
 
         if sample_num is None:
             sample_num = self.args.derive_num_sample
