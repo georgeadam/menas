@@ -3,18 +3,19 @@ import torch
 
 import sys, os
 sys.path.insert(0, os.path.realpath(__file__)[:-len('/train_scripts/train_regular.py')])
+# TODO: This a dumb solution to adding the parent directories parent to the path.  I want to do this without setting an environment variable for super easy deployment.
 
 from data.image import Image
 from data.text import Corpus
 
-from configs import config_ours as config
-#from configs import config_orig as config
+#from configs import config_ours as config
+from configs import config_orig as config
 from train_scripts import regular_trainer as trainer
 import utils as utils
 
 logger = utils.get_logger()
 
-#@utils.slurmify
+@utils.slurmify
 def main(args):  # pylint:disable=redefined-outer-name
     """main: Entry point."""
     utils.prepare_dirs(args)

@@ -297,7 +297,7 @@ class Trainer(object):
         step = 0
         raw_total_loss = 0
         total_loss = 0
-        train_idx = random.randint(0, self.train_data.size(0) - 1 - 1 - 1 - self.max_length*max_step)
+        train_idx = 0 #random.randint(0, self.train_data.size(0) - 1 - 1 - 1 - self.max_length*max_step)
         # TODO(brendan): Why - 1 - 1?
         #for train_idx in [random.randint(0, self.train_data.size(0) - 1 - 1 - 1 - self.max_length)
         #               for _ in range(self.train_data.size(0) - 1 - 1)]: #while _ < self.train_data.size(0) - 1 - 1:
@@ -466,7 +466,7 @@ class Trainer(object):
 
         hidden = self.shared.init_hidden(self.args.batch_size)
         total_loss = 0
-        valid_idx = random.randint(0, self.valid_data.size(0) - 1 - self.max_length)#0
+        valid_idx = 0#random.randint(0, self.valid_data.size(0) - 1 - self.max_length)#0
         for step in range(self.args.controller_max_step):
             # sample models
             dags, log_probs, entropies = self.controller.sample(
