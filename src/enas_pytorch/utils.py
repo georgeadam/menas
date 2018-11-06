@@ -44,11 +44,10 @@ def slurmify(f):
     python_path = "/ais/gobi5/lorraine/anaconda3/envs/py36/bin/python"
     session_name = 'menas'
     if 'slurmed' not in sys.argv:  # Redirect to slurm if no arguments
-        command0 = 'tmux send-keys -t ' + session_name + ':0 C-c'
-        os.system(command0)
-        os.system(command0)  # Send twice to cancel any current jobs.
+        command0 = 'tmux send-keys -t ' + session_name + ':0 C-c C-c'
+        os.system(command0) # Send twice to cancel any current jobs.
 
-        command = 'tmux send-keys -t ' + session_name + ':0 C-z \''
+        command = 'tmux send-keys -t ' + session_name + ':0 \''
         command += python_path + ' ' + sys.argv[0]
         for argument in sys.argv[1:]:
             command += " " + argument
@@ -56,11 +55,13 @@ def slurmify(f):
         command += "\' Enter"
         print(f"Running {command} in tmux...")
         os.system(command)
+        # TODO: This won't work for debugging.  Need to setup tmux before initial call?
 
-        command2 = "tmux select-window -t " + session_name + ":0"
-        command3 = "tmux attach-session -t " + session_name
-        os.system(command2)  # Attach to the window
-        return os.system(command3)
+        #command2 = "tmux select-window -t " + session_name + ":0"
+        #command3 = "tmux attach-session -t " + session_name
+        #os.system(command2)  # Attach to the window
+        return os.system("tmux a -t " + session_name)
+        # TODO: This just displays output - doesn't attach to the process.
     else:
         return f
 

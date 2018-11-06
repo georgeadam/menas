@@ -7,7 +7,8 @@ sys.path.insert(0, os.path.realpath(__file__)[:-len('/train_scripts/train_regula
 from data.image import Image
 from data.text import Corpus
 
-from configs import config_ours as config
+#from configs import config_ours as config
+from configs import config_orig as config
 from train_scripts import regular_trainer as trainer
 import utils as utils
 

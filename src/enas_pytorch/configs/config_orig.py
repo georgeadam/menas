@@ -138,6 +138,8 @@ def get_args():
 
     load_dotenv(find_dotenv(), override=True)
     d["data_dir"] = os.path.join(ROOT_DIR, args.data_dir)
+    d["log_dir"] = os.path.join(ROOT_DIR, args.log_dir)
+
     if args.num_gpu > 0:
         setattr(args, 'cuda', True)
     else:
