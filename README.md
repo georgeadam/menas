@@ -20,7 +20,7 @@ From Meeting:
     in the optimizer (least noisy), most recent gradient (most noisy)
     
 3. Change the search space such that it is possible to sample LSTM style cells with hadamard products
-	* Their DAG is too simplified since for each node in a cell, we just sample an activation function and a previous node to connect it to
+    * Their DAG is too simplified since for each node in a cell, we just sample an activation function and a previous node to connect it to
     * We should include more complicated connection patterns as an available choice
     
 4. We can restrict the choices for activation function to be for the entire cell rather than for each node in the cell
@@ -61,6 +61,16 @@ Inside of the python environment install the requirements:
 pip install -r requirements.txt
 ```
 
+You may want to run the experiments in tmux:
+```
+tmux new -s menas
+```
+
+Or connect to existing tmux with:
+```
+tmux a -t menas
+```
+
 Experiments can be run from the `menas/src/enas_pytorch` directory:
 ```
 python python train_scripts/train_regular.py --network_type rnn --dataset ptb -entropy_coeff 0.0001 --num_gpu 0
@@ -81,7 +91,7 @@ To make gifs:
 python generate_gif.py --model_name=<dir> --output=sample.gif
 ```
 
-To launch tensorboard:
+To launch tensorboard (maybe within tmux):
 ```
 tensorboard --logdir=logs --port=6006
 ```
