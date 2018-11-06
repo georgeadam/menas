@@ -240,6 +240,15 @@ def save_args(args):
     with open(param_path, 'w') as fp:
         json.dump(args.__dict__, fp, indent=4, sort_keys=True)
 
+
+def load_args(load_path):
+    param_path = os.path.join(load_path, "params.json")
+
+    with open(param_path, "r") as fp:
+        args = json.load(fp)
+
+    return args
+
 def makedirs(path):
     if not os.path.exists(path):
         logger.info("[*] Make directories : {}".format(path))
