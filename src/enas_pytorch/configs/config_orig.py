@@ -1,4 +1,4 @@
-import argparse
+from configs.custom_argparse import CustomArgumentParser
 from utils import get_logger
 
 from dotenv import  find_dotenv, load_dotenv
@@ -8,16 +8,15 @@ from settings import ROOT_DIR
 
 logger = get_logger()
 
+parser = CustomArgumentParser()
 
-arg_lists = []
-parser = argparse.ArgumentParser()
 
 def str2bool(v):
     return v.lower() in ('true')
 
+
 def add_argument_group(name):
     arg = parser.add_argument_group(name)
-    arg_lists.append(arg)
     return arg
 
 # Network
@@ -129,7 +128,7 @@ misc_arg.add_argument('--use_tensorboard', type=str2bool, default=True)
 misc_arg.add_argument("--train_type", type=str, default="enas")
 
 
-def get_args():
+def get_args_helper(parser, logger):
     """Parses all of the arguments above, which mostly correspond to the
     hyperparameters mentioned in the paper.
     """
@@ -146,4 +145,9 @@ def get_args():
         setattr(args, 'cuda', False)
     if len(unparsed) > 1:
         logger.info(f"Unparsed args: {unparsed}")
+
     return args, unparsed
+
+
+def get_args():
+    return get_args_helper(parser, logger)
