@@ -121,7 +121,7 @@ misc_arg.add_argument('--num_gpu', type=int, default=1)
 misc_arg.add_argument('--num-workers', type=int, default=2)
 misc_arg.add_argument('--random_seed', type=int, default=12345)
 misc_arg.add_argument('--use_tensorboard', type=str2bool, default=True)
-misc_arg.add_argument("--train_type", type=str, default="hardcoded",
+misc_arg.add_argument("--train_type", type=str, default="ours",
                       choices=['orig', 'ours', 'random', 'hardcoded'])
 
 
