@@ -638,13 +638,15 @@ class Trainer(object):
         # Sample a bunch of dags and get the one that performs best on the validation set
         # Currently seems to be the case that it's just on the first batch of the validation set which is obviously
         # not a reliable performance metric.
-        best_dag = self.derive(sample_num, valid_idx, False)
+        with _get_no_grad_ctx_mgr():
+            best_dag = self.derive(sample_num, valid_idx, False)
 
-        validation_perplexity = self.get_perplexity_multibatch(self.eval_data, best_dag)
-        test_perplexity = self.get_perplexity_multibatch(self.test_data, best_dag)
-
-        print("Averaged perplexity of best DAG on validation set is: {}".format(validation_perplexity))
-        print("Averaged perplexity of best DAG on test set is: {}".format(test_perplexity))
+            validation_perplexity = self.get_perplexity_multibatch(self.eval_data, best_dag)
+            test_perplexity = self.get_perplexity_multibatch(self.test_data, best_dag)
+            self.tb.scalar_summary(f'eval/final_val_ppl', validation_perplexity, self.epoch)
+            self.tb.scalar_summary(f'eval/final_test_ppl', test_perplexity, self.epoch)
+            print("Averaged perplexity of best DAG on validation set is: {}".format(validation_perplexity))
+            print("Averaged perplexity of best DAG on test set is: {}".format(test_perplexity))
 
 
     @property

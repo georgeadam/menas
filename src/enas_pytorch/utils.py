@@ -34,7 +34,7 @@ def slurmify(f):
     """Use this to run the same python script in SLURM.  We use "slurmed" as a reserved keyword to see if the function
     has been invoked via this decorator.
     This assumes that you have a tmux session with allocated resources (ex. an interactive session from slurm).
-    For example, this can be done with `srun --gres=gpu:0 -c 2 -l -w dgx1 -p gpuc --pty bash -i`.
+    For example, this can be done with `srun --gres=gpu:1 -c 2 -l -p gpuc --pty bash -i`.
     Additionally, you must have a path to a desired python interpreter.
     You can start a tmux session with `tmux new -s <name>` or attach to a tmux session with `tmux a -t <name>`.
 
