@@ -8,9 +8,10 @@ sys.path.insert(0, os.path.realpath(__file__)[:-len('/train_scripts/train_regula
 from data.image import Image
 from data.text import Corpus
 
-#from configs import config_ours as config
 from configs import config_orig as config
-from train_scripts import regular_trainer as trainer
+from train_scripts import regular_trainer
+from train_scripts import random_trainer
+from train_scripts import hardcoded_trainer
 import utils as utils
 
 logger = utils.get_logger()
@@ -33,7 +34,12 @@ def main(args):  # pylint:disable=redefined-outer-name
     else:
         raise NotImplementedError(f"{args.dataset} is not supported")
 
-    trnr = trainer.Trainer(args, dataset)
+    if args.train_type == 'ours' or args.train_type == 'orig':
+        trnr = regular_trainer.Trainer(args, dataset)
+    elif args.train_type == 'random':
+        trnr = random_trainer.RandomTrainer(args, dataset)
+    elif args.train_type == 'hardcoded':
+        trnr = hardcoded_trainer.HardcodedTrainer(args, dataset)
 
     if args.mode == 'train':
         utils.save_args(args)
