@@ -15,7 +15,8 @@ import utils as utils
 
 logger = utils.get_logger()
 
-@utils.slurmify
+# python train_scripts/train_regular.py --mode test --load_path ptb_enas_2018-11-06_13-08-37
+#@utils.slurmify
 def main(args):  # pylint:disable=redefined-outer-name
     """main: Entry point."""
     utils.prepare_dirs(args)
@@ -47,9 +48,15 @@ def main(args):  # pylint:disable=redefined-outer-name
             raise Exception("[!] You should specify `load_path` to load a "
                             "pretrained model")
         trnr.test()
+        main(args)  # TODO: Note that this is recursive, so it re-loads the path and keeps running.
 
 if __name__ == "__main__":
     args, unparsed = config.get_args()
+    if args.mode == 'test':
+        # This could be invoked with:
+        # python train_scripts/train_regular.py --mode test --load_path ptb_enas_2018-11-06_13-08-37
+        while True:  # Spin in a loop graphin the test result for tensorboard.
+            main(args)
     main(args)
     # srun --gres=gpu:1 -c 2 -l -w dgx1 -p gpuc python train_regular.py --mode test --load_path ptb_2018-10-30_20-42-11 --num_gpu 1
     # srun --gres=gpu:1 -c 2 -l -w dgx1 -p gpuc python train_scripts/train_regular.py --network_type rnn --dataset ptb --controller_optim adam --controller_lr 0.00035 --shared_optim adam --shared_lr 0.00035 --entropy_coeff 0.0001 --num_gpu 1
