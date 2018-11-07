@@ -4,7 +4,7 @@ import torch
 from data.image import Image
 from data.text import Corpus
 
-from configs import config_ours as config
+from configs import config_ablation as config
 from train_scripts import regular_trainer as trainer
 import utils as utils
 
@@ -151,7 +151,7 @@ def main(args):  # pylint:disable=redefined-outer-name
         print("Validation PPL when removed node {} is: {}".format(idx, ppl))
 
     with open(os.path.join(save_dir, "params.json"), "w") as fp:
-        json.dump(train_args.__dict__, fp, indent=4, sort_keys=True)
+        json.dump(train_args, fp, indent=4, sort_keys=True)
 
     with open(os.path.join(save_dir, "results.json"), "w") as fp:
         json.dump(results, fp, indent=4, sort_keys=True)

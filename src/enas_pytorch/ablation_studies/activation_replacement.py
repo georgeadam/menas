@@ -4,8 +4,10 @@ import torch
 from data.image import Image
 from data.text import Corpus
 
-from configs import config_ours as config
-from train_scripts import regular_trainer as trainer
+from configs import config_ablation as config
+from train_scripts import regular_trainer
+from train_scripts import random_trainer
+from train_scripts import hardcoded_trainer
 import utils as utils
 
 from models.controller import Node
@@ -64,7 +66,12 @@ def main(args):  # pylint:disable=redefined-outer-name
     else:
         raise NotImplementedError(f"{args.dataset} is not supported")
 
-    trnr = trainer.Trainer(args, dataset)
+    if args.train_type == "enas":
+        trnr = regular_trainer.Trainer(args, dataset)
+    elif args.trian_type == 'random':
+        trnr = random_trainer.RandomTrainer(args, dataset)
+    elif args.train_type == "hardcoded":
+        trnr = hardcoded_trainer.HardcodedTrainer(args, dataset)
 
     dag = trnr.derive()
 
@@ -82,7 +89,7 @@ def main(args):  # pylint:disable=redefined-outer-name
         print("Validation PPL when using all {} activations is: {}".format(activation, ppl))
 
     with open(os.path.join(save_dir, "params.json"), "w") as fp:
-        json.dump(train_args.__dict__, fp, indent=4, sort_keys=True)
+        json.dump(train_args, fp, indent=4, sort_keys=True)
 
     with open(os.path.join(save_dir, "results.json"), "w") as fp:
         json.dump(results, fp, indent=4, sort_keys=True)

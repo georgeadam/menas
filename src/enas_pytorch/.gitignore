@@ -9,6 +9,7 @@ data/cifar-10-batches-py
 
 # Log
 logs
+analysis_results
 
 # ETC
 .vscode
