@@ -59,7 +59,7 @@ if __name__ == "__main__":
     args, unparsed = config.get_args()
     if args.mode == 'test':
         # This could be invoked with:
-        # python train_scripts/train_regular.py --mode test --load_path ptb_enas_2018-11-07_15-27-48
+        # python train_scripts/train_regular.py --mode test --load_path ptb_enas_2018-11-07_21-56-24
         while True:  # Spin in a loop graphin the test result for tensorboard.
             args, unparsed = config.get_args()
             main(args)

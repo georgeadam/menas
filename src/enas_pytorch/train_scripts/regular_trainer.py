@@ -177,6 +177,7 @@ class Trainer(object):
             #momentum=0.99,
             #nesterov=True,
             lr=self.args.controller_lr)
+        self.args.shared_decay_after = 10e8
             #shared_optimizer(
             #self.shared.parameters(),
             #lr=self.shared_lr,
