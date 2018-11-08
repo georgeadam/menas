@@ -1,27 +1,22 @@
-import argparse
+from configs.custom_argparse import CustomArgumentParser
+from configs.config_ours import add_arguments as add_arguments_ours
+from configs.config_random import add_arguments as add_arguments_random
+from configs.config_hardcoded import add_arguments as add_arguments_hardcoded
+from configs.helpers import add_argument_group, str2bool
 from utils import get_logger
 
-from dotenv import  find_dotenv, load_dotenv
+from dotenv import find_dotenv, load_dotenv
 import os
 
 from settings import ROOT_DIR
 
 logger = get_logger()
 
+parser = CustomArgumentParser()
 
-arg_lists = []
-parser = argparse.ArgumentParser()
-
-def str2bool(v):
-    return v.lower() in ('true')
-
-def add_argument_group(name):
-    arg = parser.add_argument_group(name)
-    arg_lists.append(arg)
-    return arg
 
 # Network
-net_arg = add_argument_group('Network')
+net_arg = add_argument_group(parser, 'Network')
 net_arg.add_argument('--network_type', type=str, choices=['rnn', 'cnn'], default='rnn')
  # Controller
 net_arg.add_argument('--num_blocks', type=int, default=12)
@@ -64,10 +59,10 @@ net_arg.add_argument('--norm_stabilizer_fixed_point', type=float, default=5.0)
  # Shared parameters for CIFAR
 net_arg.add_argument('--cnn_hid', type=int, default=64)
  # Data
-data_arg = add_argument_group('Data')
+data_arg = add_argument_group(parser, 'Data')
 data_arg.add_argument('--dataset', type=str, default='ptb')
  # Training / test parameters
-learn_arg = add_argument_group('Learning')
+learn_arg = add_argument_group(parser, 'Learning')
 learn_arg.add_argument('--mode', type=str, default='train',
                        choices=['train', 'derive', 'test'],
                        help='train: Training ENAS, derive: Deriving Architectures')
@@ -114,7 +109,7 @@ learn_arg.add_argument('--shared_grad_clip', type=float, default=0.25)
  # Deriving Architectures
 learn_arg.add_argument('--derive_num_sample', type=int, default=100)
  # Misc
-misc_arg = add_argument_group('Misc')
+misc_arg = add_argument_group(parser, 'Misc')
 misc_arg.add_argument('--load_path', type=str, default='')
 misc_arg.add_argument('--log_step', type=int, default=50)
 misc_arg.add_argument('--save_epoch', type=int, default=1)
@@ -126,13 +121,22 @@ misc_arg.add_argument('--num_gpu', type=int, default=1)
 misc_arg.add_argument('--num-workers', type=int, default=2)
 misc_arg.add_argument('--random_seed', type=int, default=12345)
 misc_arg.add_argument('--use_tensorboard', type=str2bool, default=True)
-misc_arg.add_argument("--train_type", type=str, default="enas")
+misc_arg.add_argument("--train_type", type=str, default="ours",
+                      choices=['orig', 'ours', 'random', 'hardcoded'])
 
 def get_args():
-    """Parses all of the arguments above, which mostly correspond to the
-    hyperparameters mentioned in the paper.
-    """
+    args,  unparsed = parser.parse_known_args()
+
+    if args.train_type == 'ours':
+        add_arguments_ours(net_arg=net_arg, data_arg=data_arg, misc_arg=misc_arg, learn_arg=learn_arg)
+    elif args.train_type == 'random':
+        add_arguments_random(net_arg=net_arg, data_arg=data_arg, misc_arg=misc_arg, learn_arg=learn_arg)
+    elif args.train_type == 'hardcoded':
+        add_arguments_hardcoded(net_arg=net_arg, data_arg=data_arg, misc_arg=misc_arg, learn_arg=learn_arg,
+                                parser=parser)
+
     args, unparsed = parser.parse_known_args()
+
     d = vars(args)
 
     load_dotenv(find_dotenv(), override=True)
@@ -145,4 +149,5 @@ def get_args():
         setattr(args, 'cuda', False)
     if len(unparsed) > 1:
         logger.info(f"Unparsed args: {unparsed}")
+
     return args, unparsed
