@@ -48,14 +48,14 @@ def main(args):  # pylint:disable=redefined-outer-name
             raise Exception("[!] You should specify `load_path` to load a "
                             "pretrained model")
         trnr.test()
-        main(args)  # TODO: Note that this is recursive, so it re-loads the path and keeps running.
 
 if __name__ == "__main__":
     args, unparsed = config.get_args()
     if args.mode == 'test':
         # This could be invoked with:
-        # python train_scripts/train_regular.py --mode test --load_path ptb_enas_2018-11-06_13-08-37
+        # python train_scripts/train_regular.py --mode test --load_path ptb_enas_2018-11-07_15-27-48
         while True:  # Spin in a loop graphin the test result for tensorboard.
+            args, unparsed = config.get_args()
             main(args)
     main(args)
     # srun --gres=gpu:1 -c 2 -l -w dgx1 -p gpuc python train_regular.py --mode test --load_path ptb_2018-10-30_20-42-11 --num_gpu 1
