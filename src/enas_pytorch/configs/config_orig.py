@@ -75,9 +75,9 @@ learn_arg.add_argument('--ppl_square', type=str2bool, default=False)
 # NOTE(brendan): (Zoph and Le, 2017) page 8 states that c is a constant,
 # usually set at 80.
 learn_arg.add_argument('--reward_c', type=int, default=80,
-                       help="WE DON'T KNOW WHAT THIS VALUE SHOULD BE") # TODO
+                       help="WE DON'T KNOW WHAT THIS VALUE SHOULD BE")  # TODO
 # NOTE(brendan): irrelevant for actor critic.
-learn_arg.add_argument('--ema_baseline_decay', type=float, default=0.95) # TODO: very important
+learn_arg.add_argument('--ema_baseline_decay', type=float, default=0.95)  # TODO: very important
 learn_arg.add_argument('--discount', type=float, default=1.0) # TODO
 learn_arg.add_argument('--controller_max_step', type=int, default=2000,
                        help='step for controller parameters')
@@ -112,7 +112,7 @@ learn_arg.add_argument('--derive_num_sample', type=int, default=100)
 misc_arg = add_argument_group(parser, 'Misc')
 misc_arg.add_argument('--load_path', type=str, default='')
 misc_arg.add_argument('--log_step', type=int, default=50)
-misc_arg.add_argument('--save_epoch', type=int, default=1)
+misc_arg.add_argument('--save_epoch', type=int, default=5)
 misc_arg.add_argument('--max_save_num', type=int, default=4)
 misc_arg.add_argument('--log_level', type=str, default='INFO', choices=['INFO', 'DEBUG', 'WARN'])
 misc_arg.add_argument('--log_dir', type=str, default='logs')

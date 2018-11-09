@@ -171,13 +171,14 @@ class Trainer(object):
         shared_optimizer = _get_optimizer(self.args.shared_optim)
         controller_optimizer = _get_optimizer(self.args.controller_optim)
 
-        self.shared_optim = controller_optimizer(
+        self.shared_optim = shared_optimizer(
             self.shared.parameters(),
             weight_decay=self.args.shared_l2_reg,
             #momentum=0.99,
             #nesterov=True,
             lr=self.args.controller_lr)
         self.args.shared_decay_after = 10e8
+        #self.args.entropy_coeff = 1e-6
             #shared_optimizer(
             #self.shared.parameters(),
             #lr=self.shared_lr,
