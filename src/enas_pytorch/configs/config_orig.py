@@ -33,7 +33,7 @@ net_arg.add_argument('--shared_embed', type=int, default=1000) # TODO: 200, 500,
 net_arg.add_argument('--shared_hid', type=int, default=1000)
 net_arg.add_argument('--shared_rnn_max_length', type=int, default=35)
 net_arg.add_argument('--shared_rnn_activations', type=eval,
-                     default="['tanh', 'ReLU', 'identity', 'sigmoid']")
+                     default="['tanh', 'ReLU', 'identity', 'sigmoid', 'weighted_activation']")
 net_arg.add_argument('--shared_cnn_types', type=eval,
                      default="['3x3', '5x5', 'sep 3x3', 'sep 5x5', 'max 3x3', 'max 5x5']")
  # PTB regularizations
@@ -58,6 +58,7 @@ net_arg.add_argument('--norm_stabilizer_regularization_amount',
 net_arg.add_argument('--norm_stabilizer_fixed_point', type=float, default=5.0)
  # Shared parameters for CIFAR
 net_arg.add_argument('--cnn_hid', type=int, default=64)
+net_arg.add_argument('--weighted_activations', type=str2bool, default=False)
  # Data
 data_arg = add_argument_group(parser, 'Data')
 data_arg.add_argument('--dataset', type=str, default='ptb')

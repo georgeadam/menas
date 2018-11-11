@@ -10,6 +10,8 @@ from torch.autograd import Variable
 import models.shared_base
 import utils
 
+from layers.activations import weighted_activation
+
 
 logger = utils.get_logger()
 
@@ -297,7 +299,7 @@ class RNN(models.shared_base.SharedModel):
         h = {}
         f = {}
 
-        f[0] = self.get_f(dag[-1][0].name)
+        f[0] = self.get_f(dag[-1][0].name, dag[-1][0].weighting)
         c[0] = torch.sigmoid(self.w_xc(x) + F.linear(h_prev, self.w_hc, None))
         h[0] = (c[0]*f[0](self.w_xh(x) + F.linear(h_prev, self.w_hh, None)) +
                 (1 - c[0])*h_prev)
@@ -336,7 +338,7 @@ class RNN(models.shared_base.SharedModel):
                 w_h = self.w_h[node_id][next_id]
                 w_c = self.w_c[node_id][next_id]
 
-                f[next_id] = self.get_f(next_node.name)
+                f[next_id] = self.get_f(next_node.name, next_node.weighting)
                 c[next_id] = torch.sigmoid(w_c(h[node_id]))
                 h[next_id] = (c[next_id]*f[next_id](w_h(h[node_id])) +
                               (1 - c[next_id])*h[node_id])
@@ -364,7 +366,7 @@ class RNN(models.shared_base.SharedModel):
         zeros = torch.zeros(batch_size, self.args.shared_hid)
         return utils.get_variable(zeros, self.args.cuda, requires_grad=False)
 
-    def get_f(self, name):
+    def get_f(self, name, weighting=None):
         name = name.lower()
         if name == 'relu':
             f = F.relu
@@ -374,6 +376,8 @@ class RNN(models.shared_base.SharedModel):
             f = lambda x: x
         elif name == 'sigmoid':
             f = torch.sigmoid
+        elif name == "weighted_activation":
+            f = weighted_activation(weighting)
         return f
 
     def get_num_cell_parameters(self, dag):

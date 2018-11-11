@@ -7,11 +7,11 @@ import torch.nn.functional as F
 
 import utils
 
+from layers.node import Node
+from itertools import zip_longest
 
-Node = collections.namedtuple('Node', ['id', 'name'])
 
-
-def _construct_dags(prev_nodes, activations, func_names, num_blocks):
+def _construct_dags(prev_nodes, activations, func_names, num_blocks, weightings=[]):
     """Constructs a set of DAGs based on the actions, i.e., previous nodes and
     activation functions, sampled from the controller/policy pi.
 
@@ -42,28 +42,29 @@ def _construct_dags(prev_nodes, activations, func_names, num_blocks):
        decoder.
     """
     dags = []
-    for nodes, func_ids in zip(prev_nodes, activations):
+
+    for nodes, func_ids, weighting in zip(prev_nodes, activations, weightings):
         dag = collections.defaultdict(list)
 
         # add first node
-        dag[-1] = [Node(0, func_names[func_ids[0]])]
-        dag[-2] = [Node(0, func_names[func_ids[0]])]
+        dag[-1] = [Node(0, func_names[func_ids[0]], weighting[0])]
+        dag[-2] = [Node(0, func_names[func_ids[0]], weighting[0])]
 
         # add following nodes
-        for jdx, (idx, func_id) in enumerate(zip(nodes, func_ids[1:])):
-            dag[utils.to_item(idx)].append(Node(jdx + 1, func_names[func_id]))
+        for jdx, (idx, func_id, weight) in enumerate(zip(nodes, func_ids[1:], weighting[1:])):
+            dag[utils.to_item(idx)].append(Node(jdx + 1, func_names[func_id], weight))
 
         leaf_nodes = set(range(num_blocks)) - dag.keys()
 
         # merge with avg
         for idx in leaf_nodes:
-            dag[idx] = [Node(num_blocks, 'avg')]
+            dag[idx] = [Node(num_blocks, 'avg', None)]
 
         # TODO(brendan): This is actually y^{(t)}. h^{(t)} is node N - 1 in
         # the graph, where N Is the number of nodes. I.e., h^{(t)} takes
         # only one other node as its input.
         # last h[t] node
-        last_node = Node(num_blocks + 1, 'h[t]')
+        last_node = Node(num_blocks + 1, 'h[t]', None)
         dag[num_blocks] = [last_node]
         dags.append(dag)
 
@@ -87,10 +88,10 @@ class Controller(torch.nn.Module):
         if self.args.network_type == 'rnn':
             # NOTE(brendan): `num_tokens` here is just the activation function
             # for every even step,
-            self.num_tokens = [len(args.shared_rnn_activations)]
+            self.num_tokens = [len(args.shared_rnn_activations) - 1]
             for idx in range(self.args.num_blocks):
                 self.num_tokens += [idx + 1,
-                                    len(args.shared_rnn_activations)]
+                                    len(args.shared_rnn_activations) - 1]
             self.func_names = args.shared_rnn_activations
         elif self.args.network_type == 'cnn':
             self.num_tokens = [len(args.shared_cnn_types),
@@ -166,6 +167,7 @@ class Controller(torch.nn.Module):
 
         activations = []
         entropies = []
+        weightings = []
         log_probs = []
         prev_nodes = []
         # NOTE(brendan): The RNN controller alternately outputs an activation,
@@ -173,42 +175,74 @@ class Controller(torch.nn.Module):
         # which only gets an activation function. The last node is the output
         # node, and its previous node is the average of all leaf nodes.
         for block_idx in range(2*(self.args.num_blocks - 1) + 1):
+            mode = block_idx % 2
+
             logits, hidden = self.forward(inputs,
                                           hidden,
                                           block_idx,
                                           is_embed=(block_idx == 0))
 
             probs = F.softmax(logits, dim=-1)
+
             log_prob = F.log_softmax(logits, dim=-1)
             # TODO(brendan): .mean() for entropy?
             entropy = -(log_prob * probs).sum(1, keepdim=False)
-
-            action = probs.multinomial(num_samples=1).data
-            selected_log_prob = log_prob.gather(1, utils.get_variable(action, requires_grad=False))
-
-            # TODO(brendan): why the [:, 0] here? Should it be .squeeze(), or
-            # .view()? Same below with `action`.
             entropies.append(entropy)
-            log_probs.append(selected_log_prob[:, 0])
+
+            if self.args.weighted_activations and mode == 0:
+                action = torch.ones(batch_size, len(probs)).long() * (len(self.args.shared_rnn_activations) - 1)
+                selected_log_prob = torch.ones(1)
+
+                if self.args.cuda:
+                    action = action.cuda()
+                    selected_log_prob = selected_log_prob.cuda()
+
+                weighting = probs.data
+
+                # TODO(brendan): why the [:, 0] here? Should it be .squeeze(), or
+                # .view()? Same below with `action`.
+
+                log_probs.append(selected_log_prob)
+            else:
+                action = probs.multinomial(num_samples=1).data
+                selected_log_prob = log_prob.gather(1, utils.get_variable(action, requires_grad=False))
+
+                # TODO(brendan): why the [:, 0] here? Should it be .squeeze(), or
+                # .view()? Same below with `action`.
+
+                log_probs.append(selected_log_prob[:, 0])
 
             # 0: function, 1: previous node
-            mode = block_idx % 2
+
             inputs = utils.get_variable(
                 action[:, 0] + sum(self.num_tokens[:mode]),
                 requires_grad=False)
 
             if mode == 0:
-                activations.append(action[:, 0])
+                if self.args.weighted_activations:
+                    activations.append(action[:, 0])
+                    weightings.append(weighting)
+                else:
+                    activations.append(action[:, 0])
             elif mode == 1:
                 prev_nodes.append(action[:, 0])
 
         prev_nodes = torch.stack(prev_nodes).transpose(0, 1)
         activations = torch.stack(activations).transpose(0, 1)
 
+        if self.args.weighted_activations:
+            weightings = torch.stack(weightings).permute(1, 0, 2)
+        else:
+            weightings = torch.zeros(activations.shape)
+
+            if self.args.cuda:
+                weightings = weightings.cuda()
+
         dags = _construct_dags(prev_nodes,
                                activations,
                                self.func_names,
-                               self.args.num_blocks)
+                               self.args.num_blocks,
+                               weightings=weightings)
 
         if save_dir is not None:
             for idx, dag in enumerate(dags):
