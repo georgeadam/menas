@@ -6,6 +6,7 @@ One Paragraph of project description goes here.
 
 ## TODO
 
+### October 29 Meeting
 From Meeting:
 
 1. Reproduce existing results on RNN search
@@ -20,15 +21,49 @@ From Meeting:
     in the optimizer (least noisy), most recent gradient (most noisy)
     
 3. Change the search space such that it is possible to sample LSTM style cells with hadamard products
-    * Their DAG is too simplified since for each node in a cell, we just sample an activation function and a previous node to connect it to
+	* Their DAG is too simplified since for each node in a cell, we just sample an activation function and a previous node to connect it to
     * We should include more complicated connection patterns as an available choice
     
 4. We can restrict the choices for activation function to be for the entire cell rather than for each node in the cell
     * Based on some of the cells they came up with, there is alternation between tanh and relu activation for the 
     nodes inside the cell that seems totally arbitrary and likely reduces interpretability of the features created
     
+    
+### November 12 Meeting
+
+1. Incorporating extra gradient term into ENAS
+    * DARTS code has it already, just need to change this to affect controller parameters for ENAS instead
+    * Do empirical analysis to see similarity between fake unrolled gradient at step t, and the true gradient at t+1.
+     If this similarity is low, then extra gradient should have no benefit
+
+2. Retrain single architecture to get results like in ENAS paper
+    * They probably trained a decent controller, sampled like 100 DAGs from it, found the best DAG out of those 100, 
+    and then retrained that single DAG from scratch or from the state of the shared parameters at that time
+    * Alternatively, we could play around with the entropy term turning it into a penalty once we want to start 
+    fine-tuning an architecture. This might require less coded than the first method, though we would have to still 
+    keep training the controller parameters in this case, otherwise how else would we decrease the entropy if not by 
+    tuning the controller's parameters to output more confident probabilities at each step?
+
+3. Ablation Studies
+    * Now that we have the code running for the two ablation studies, let's see what effect they have on the various 
+    types of models we've trained (ENAS, random, hardcoded)
+    * Create another ablation study that adds connections instead of removing them
+    * We want to isolate the most important factors contributing to ENAS' performance. ls it the connection patterns 
+    or activation function mixing?
+    
+4. Architecture design instead of blind search, and model capacity
+    * It would be useful to generate architectures with desired properties such as robustness to input 
+    perturbations, or to control for model capacity (i.e. have the controller's hidden state be in an embedding space
+    where different directions correspond to different model properties like in proper generative models)
+    * Need a notion of model capacity for the case where we have a fixe number of nodes and connections. Could be 
+    number of unique paths from input to output node or something like that. 
+    * What role does mixing activation functions play in model capacity? I.e. does having a mixture of activation 
+    functions increase ability to overfit compared to just a single activation type?
+    * Do analysis of the controller's findal hidden state after sampling an architecture to see if architectures that
+    differ by just a single connection or activation function have similar hidden states in the controller 
+
+    
 * Write up missing term and background, etc.
-* Ablation Studies.
 
 
 * Fill out the TODO in-depth.
