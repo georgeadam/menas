@@ -21,15 +21,42 @@ Install prerequisites with:
 
     conda install graphviz
     pip install -r requirements.txt
+    
+### RNN Cell Search
+
+#### ENAS
 
 To train **ENAS** to discover a recurrent cell for RNN:
 
-    python main.py --network_type rnn --dataset ptb --controller_optim adam --controller_lr 0.00035 \
-                   --shared_optim sgd --shared_lr 20.0 --entropy_coeff 0.0001
+    python train_scripts/train_regular.py --network_type rnn --dataset ptb --controller_optim adam \
+                                          --controller_lr 0.00035 --shared_optim sgd --shared_lr 20.0 \ 
+                                          --entropy_coeff 0.0001 --train_type orig
 
-    python main.py --network_type rnn --dataset wikitext
+    python train_scripts/train_regular.py --network_type rnn --dataset wikitext --train_type orig
+    
+#### Hardcoded Architectures
 
-To train **ENAS** to discover CNN architecture (in progress):
+To train **ENAS** to figure out just the activation function combination for a given hardcoded architecture:
+
+    python train_scripts/train_regular.py --network_type rnn --dataset ptb --controller_optim adam \
+                                          --controller_lr 0.00035 --shared_optim sgd --shared_lr 20.0 \ 
+                                          --entropy_coeff 0.0001 --train_type hardcoded --architecture tree
+                                        
+    python train_scripts/train_regular.py --network_type rnn --dataset ptb --controller_optim adam \
+                                          --controller_lr 0.00035 --shared_optim sgd --shared_lr 20.0 \ 
+                                          --entropy_coeff 0.0001 --train_type hardcoded --architecture chain    
+    
+#### Random Architectures
+
+To train shared parameters by sampling random architectures instead of using a controller:
+
+    python train_scripts/train_regular.py --network_type rnn --dataset ptb --controller_optim adam \
+                                          --controller_lr 0.00035 --shared_optim sgd --shared_lr 20.0 \ 
+                                          --entropy_coeff 0.0001 --train_type random    
+
+### Convolutional Cell Search (in progress)
+
+To train **ENAS** to discover CNN architecture:
 
     python main.py --network_type cnn --dataset cifar --controller_optim momentum --controller_lr_cosine=True \
                    --controller_lr_max 0.05 --controller_lr_min 0.0001 --entropy_coeff 0.1
@@ -60,6 +87,15 @@ To generate `gif` image of generated samples:
     python generate_gif.py --model_name=ptb_2018-02-15_11-20-02 --output=sample.gif
 
 More configurations can be found [here](configs/config_ours.py).
+
+## Ablation Studies
+
+### Activation Function Replacement
+
+To see the effect of replacing all activation functions with a single type for all possible types of activation 
+functions:
+
+    python ablation_studies/activation_replacement.py --load_path=ptb_2018-02-15_11-20-02 --mode=derive
 
 
 ## Results
