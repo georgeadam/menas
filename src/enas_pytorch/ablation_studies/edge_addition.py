@@ -13,33 +13,44 @@ import utils as utils
 from network_construction.utils import Node
 
 import collections
+import json
 import os
 from dotenv import find_dotenv, load_dotenv
-from settings import ROOT_DIR
 
 from dotmap import DotMap
-import json
+from settings import ROOT_DIR
 
 logger = utils.get_logger()
 
 
-def replace_all_activations(dag, replacement="tanh"):
+def add_edge(dag, from_idx, to_idx, activation="relu"):
     new_dag = collections.defaultdict(list)
 
+    # Construct a new dag from the old dag to avoid overwriting things
     for idx, nodes in dag.items():
         temp_nodes = []
 
         for node in nodes:
-            if node.name != "avg" and node.name != "h[t]":
-                temp_node = Node(node.id, replacement)
-            elif idx < 0:
-                temp_node = Node(node.id, node.name)
-            else:
-                temp_node = Node(node.id, node.name)
+            temp_node = Node(node.id, node.name)
 
             temp_nodes.append(temp_node)
 
         new_dag[idx] = temp_nodes
+
+    from_nodes = new_dag[from_idx]
+
+    # Check if edge already exists and don't add another one if so
+    for node in from_nodes:
+        if node.id == to_idx:
+            return False
+
+    # If new edge points to the last node in cell, use the avg activation instead of the specified activation
+    if to_idx == max(dag.keys()):
+        new_child = Node(to_idx, "avg")
+    else:
+        new_child = Node(to_idx, activation)
+
+    new_dag[from_idx].append(new_child)
 
     return new_dag
 
@@ -51,9 +62,9 @@ def main(args):  # pylint:disable=redefined-outer-name
     torch.manual_seed(args.random_seed)
     load_dotenv(find_dotenv(), override=True)
 
-    activation_ablation_dir = os.environ.get("ACTIVATION_ABLATION_DIR")
+    node_ablation_dir = os.environ.get("EDGE_ADDITION_DIR")
     model_dir = os.path.basename(args.model_dir)
-    save_dir = os.path.join(ROOT_DIR, activation_ablation_dir, model_dir)
+    save_dir = os.path.join(ROOT_DIR, node_ablation_dir, model_dir)
 
     train_args = utils.load_args(args.model_dir)
     train_args = DotMap(train_args)
@@ -90,24 +101,34 @@ def main(args):  # pylint:disable=redefined-outer-name
     results = {"validation": {"original_performance": validation_ppl}, "test": {"original_performance": test_ppl}}
     activations = ["tanh", "relu", "sigmoid", "identity"]
 
-    for activation in activations:
-        temp_dag = replace_all_activations(dag, activation)
-        validation_ppl = trnr.get_perplexity_multibatch(trnr.eval_data, temp_dag)
-        test_ppl = trnr.get_perplexity_multibatch(trnr.test_data, temp_dag)
-
-        results["validation"][activation] = validation_ppl
-        results["test"][activation] = test_ppl
-
-        print("Validation PPL when using all {} activations is: {}".format(activation, validation_ppl))
-        print("Test PPL when using all {} activations is: {}".format(activation, test_ppl))
-
-        with open(os.path.join(save_dir, "results.json"), "w") as fp:
-            json.dump(results, fp, indent=4, sort_keys=True)
-
-    train_args.mode = original_mode
-
     with open(os.path.join(save_dir, "params.json"), "w") as fp:
         json.dump(train_args.toDict(), fp, indent=4, sort_keys=True)
+
+    for activation in activations:
+        for from_idx in range(0, train_args.num_blocks):
+            for to_idx in range(from_idx + 1, train_args.num_blocks + 1):
+                temp_dag = add_edge(dag, from_idx, to_idx, activation)
+
+                if temp_dag == False:
+                    continue
+
+                validation_ppl = trnr.get_perplexity_multibatch(trnr.eval_data, temp_dag)
+                test_ppl = trnr.get_perplexity_multibatch(trnr.test_data, temp_dag)
+
+                results["validation"]["{}_{}_{}".format(from_idx, to_idx, activation)] = validation_ppl
+                results["test"]["{}_{}_{}".format(from_idx, to_idx, activation)] = test_ppl
+
+                print("Validation PPL when edge added from node {} to {} with activation {} is: {}".format(from_idx,
+                                                                                                           to_idx,
+                                                                                                           activation,
+                                                                                                           validation_ppl))
+                print("Test PPL when edge added from node {} to {} with activation {} is: {}".format(from_idx,
+                                                                                                     to_idx,
+                                                                                                     activation,
+                                                                                                     validation_ppl))
+
+                with open(os.path.join(save_dir, "results.json"), "w") as fp:
+                    json.dump(results, fp, indent=4, sort_keys=True)
 
 
 if __name__ == "__main__":

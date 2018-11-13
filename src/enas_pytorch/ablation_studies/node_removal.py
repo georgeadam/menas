@@ -63,7 +63,7 @@ def remove_node_reconnect(dag, remove_idx):
 
     if parent_idx not in new_dag.keys() and len(child_nodes) > 0:
         new_dag[parent_idx] = child_nodes
-    elif len(child_nodes) > 0:
+    elif len(child_nodes) > 0 and child_nodes[0].id != max(dag.keys()):
         new_dag[parent_idx] += child_nodes
 
     return new_dag
@@ -126,13 +126,13 @@ def main(args):  # pylint:disable=redefined-outer-name
         print("Validation PPL when removed node {} is: {}".format(idx, validation_ppl))
         print("Test PPL when removed node {} is: {}".format(idx, test_ppl))
 
+        with open(os.path.join(save_dir, "results.json"), "w") as fp:
+            json.dump(results, fp, indent=4, sort_keys=True)
+
     train_args.mode = original_mode
 
     with open(os.path.join(save_dir, "params.json"), "w") as fp:
         json.dump(train_args.toDict(), fp, indent=4, sort_keys=True)
-
-    with open(os.path.join(save_dir, "results.json"), "w") as fp:
-        json.dump(results, fp, indent=4, sort_keys=True)
 
 
 if __name__ == "__main__":
