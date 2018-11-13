@@ -128,6 +128,7 @@ class HardcodedTrainer(object):
         self.epoch = 0
         self.shared_step = 0
         self.start_epoch = 0
+        self.best_ppl = float("inf")
 
         logger.info('regularizing:')
         for regularizer in [('activation regularization',
@@ -239,11 +240,14 @@ class HardcodedTrainer(object):
             if self.epoch % self.args.save_epoch == 0:
                 with _get_no_grad_ctx_mgr():
                     best_dag = self.derive()
-                    self.evaluate(self.eval_data,
+                    eval_ppl = self.evaluate(self.eval_data,
                                   best_dag,
                                   'val_best',
                                   max_num=self.args.batch_size) # * 100
-                self.save_model()
+
+                if eval_ppl < self.best_ppl:
+                    self.best_ppl = eval_ppl
+                    self.save_model()
 
             if self.epoch >= self.args.shared_decay_after:
                 utils.update_lr(self.shared_optim, self.shared_lr)
