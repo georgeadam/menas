@@ -24,6 +24,7 @@ def _clip(grads, max_norm):
 class Architect(object):
 
   def __init__(self, model, args):
+    self.diff_through_unrolled = False
     self.network_weight_decay = args.wdecay
     self.network_clip = args.clip
     self.model = model
@@ -61,6 +62,9 @@ class Architect(object):
           hidden_valid, input_valid, target_valid, eta):
     unrolled_model, clip_coef = self._compute_unrolled_model(hidden_train, input_train, target_train, eta)
     unrolled_loss, hidden_next = unrolled_model._loss(hidden_valid, input_valid, target_valid)
+
+    if not self.diff_through_unrolled:
+        return hidden_next
 
     unrolled_loss.backward()
     dalpha = [v.grad for v in unrolled_model.arch_parameters()]
