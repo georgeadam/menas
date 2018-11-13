@@ -46,11 +46,7 @@ class Architect(object):
     eta = network_optimizer.param_groups[0]['lr']
     self.optimizer.zero_grad()
     if unrolled:
-        if self.diff_through_unrolled:
-            hidden = self._backward_step_unrolled(hidden_train, input_train, target_train, hidden_valid, input_valid, target_valid, eta)
-        else:
-            hidden = self._backward_step_unrolled(hidden_train, input_train, target_train, hidden_valid,
-                                                      input_valid, target_valid, eta)
+        hidden = self._backward_step_unrolled(hidden_train, input_train, target_train, hidden_valid, input_valid, target_valid, eta)
     else:
         hidden = self._backward_step(hidden_valid, input_valid, target_valid)
     self.optimizer.step()
