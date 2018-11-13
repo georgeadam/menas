@@ -27,16 +27,15 @@ def replace_all_activations(dag, replacement="tanh"):
     new_dag = collections.defaultdict(list)
 
     for idx, nodes in dag.items():
-        if idx < 0:
-            continue
-
         temp_nodes = []
 
         for node in nodes:
-            if node.name != "avg":
+            if node.name != "avg" and node.name != "h[t]":
                 temp_node = Node(node.id, replacement)
+            elif idx < 0:
+                temp_node = Node(node.id, node.name)
             else:
-                temp_node = Node(node.id, "avg")
+                temp_node = Node(node.id, node.name)
 
             temp_nodes.append(temp_node)
 
@@ -60,6 +59,7 @@ def main(args):  # pylint:disable=redefined-outer-name
     train_args = DotMap(train_args)
     original_mode = train_args.mode
     train_args.mode = "derive"
+    train_args.load_path = args.load_path
     utils.makedirs(save_dir)
 
     if args.num_gpu > 0:

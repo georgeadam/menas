@@ -9,14 +9,14 @@ export PYTHONPATH
 source /h/alexadam/anaconda3/bin/activate dl
 
 ablation_study=$1
-model_path=$2
+load_path=$2
 
 if [ "$ablation_study" == "activation_replacement" ]
 then
-    script=ablation_studies/activation_relacement.py
+    script=ablation_studies/activation_replacement.py
 elif [ "$ablation_study" == "node_removal" ]
 then
     script=ablation_studies/node_removal.py
 fi
 
-python3 $script --model_path=$model_path
+python3 $script --load_path=$load_path

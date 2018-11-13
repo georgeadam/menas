@@ -43,7 +43,7 @@ def remove_node_reconnect(dag, remove_idx):
 
         if idx == remove_idx:
             for node in nodes:
-                if node.id != max(dag.keys()):
+                if node.id != max(dag.keys()) or len(nodes) == 1:
                     child_nodes.append(Node(node.id, node.name))
 
             continue
@@ -84,6 +84,7 @@ def main(args):  # pylint:disable=redefined-outer-name
     train_args = DotMap(train_args)
     original_mode = train_args.mode
     train_args.mode = "derive"
+    train_args.load_path = args.load_path
     utils.makedirs(save_dir)
 
     if args.num_gpu > 0:
