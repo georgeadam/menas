@@ -642,6 +642,26 @@ class Trainer(object):
 
         return best_dag
 
+    def derive_many(self, sample_num=None):
+        """
+        Just samples a bunch of architectures and returns them along with the hidden state of the controller.
+        To be used by analysis of hidden states, not for model evaluation.
+
+        Args:
+            sample_num: The number of architectures to sample.
+
+        Returns:
+            A list of sampled DAGs, and the corresponding controller hidden state for each DAG.
+        """
+        if sample_num is None:
+            sample_num = self.args.derive_num_sample
+
+        dags, _, entropies, hidden_sampled = self.controller.sample(sample_num,
+                                                                    with_details=True,
+                                                                    return_hidden=True)
+
+        return dags, hidden_sampled
+
     def test(self, sample_num=None, valid_idx=0):
         # Sample a bunch of dags and get the one that performs best on the validation set
         # Currently seems to be the case that it's just on the first batch of the validation set which is obviously

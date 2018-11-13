@@ -92,7 +92,7 @@ class Controller(torch.nn.Module):
 
         return logits, (hx, cx)
 
-    def sample(self, batch_size=1, with_details=False, save_dir=None):
+    def sample(self, batch_size=1, with_details=False, save_dir=None, return_hidden=False):
         """Samples a set of `args.num_blocks` many computational nodes from the
         controller, where each node is made up of an activation function, and
         each node except the last also includes a previous node.
@@ -156,9 +156,15 @@ class Controller(torch.nn.Module):
                                    os.path.join(save_dir, f'graph{idx}.png'))
 
         if with_details:
-            return dags, torch.cat(log_probs), torch.cat(entropies)
+            if return_hidden:
+                return dags, torch.cat(log_probs), torch.cat(entropies), hidden[0]
+            else:
+                return dags, torch.cat(log_probs), torch.cat(entropies)
 
-        return dags
+        if return_hidden:
+            return dags, hidden[0]
+        else:
+            return dags
 
     def init_hidden(self, batch_size):
         zeros = torch.zeros(batch_size, self.args.controller_hid)

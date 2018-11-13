@@ -84,7 +84,7 @@ def main(args):  # pylint:disable=redefined-outer-name
     else:
         raise NotImplementedError(f"{train_args.dataset} is not supported")
 
-    if train_args.train_type == "enas":
+    if train_args.train_type == "enas" or train_args.train_type == "ours" or train_args.train_type == "orig":
         trnr = regular_trainer.Trainer(train_args, dataset)
     elif train_args.trian_type == 'random':
         trnr = random_trainer.RandomTrainer(train_args, dataset)
