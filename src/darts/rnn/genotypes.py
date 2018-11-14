@@ -31,6 +31,7 @@ ENAS = Genotype(
 
 DARTS_V1 = Genotype(recurrent=[('relu', 0), ('relu', 1), ('tanh', 2), ('relu', 3), ('relu', 4), ('identity', 1), ('relu', 5), ('relu', 1)], concat=range(1, 9))
 DARTS_V2 = Genotype(recurrent=[('sigmoid', 0), ('relu', 1), ('relu', 1), ('identity', 1), ('tanh', 2), ('sigmoid', 5), ('tanh', 3), ('relu', 5)], concat=range(1, 9))
+DARTS_V3 = Genotype(recurrent=[('relu', 0), ('identity', 1), ('identity', 2), ('identity', 3), ('identity', 3), ('identity', 3), ('identity', 5), ('identity', 4)], concat=range(1, 9))
 
-DARTS = DARTS_V2
+DARTS = DARTS_V3#2
 
