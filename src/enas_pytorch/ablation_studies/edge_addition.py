@@ -41,7 +41,7 @@ def add_edge(dag, from_idx, to_idx, activation="relu"):
 
     # Check if edge already exists and don't add another one if so
     for node in from_nodes:
-        if node.id == to_idx:
+        if node.id == to_idx or to_idx == max(dag.keys()):
             return False
 
     # If new edge points to the last node in cell, use the avg activation instead of the specified activation
