@@ -128,6 +128,7 @@ class HardcodedTrainer(object):
         self.epoch = 0
         self.shared_step = 0
         self.start_epoch = 0
+        self.best_ppl = float("inf")
 
         logger.info('regularizing:')
         for regularizer in [('activation regularization',
@@ -239,11 +240,14 @@ class HardcodedTrainer(object):
             if self.epoch % self.args.save_epoch == 0:
                 with _get_no_grad_ctx_mgr():
                     best_dag = self.derive()
-                    self.evaluate(self.eval_data,
+                    eval_ppl = self.evaluate(self.eval_data,
                                   best_dag,
                                   'val_best',
                                   max_num=self.args.batch_size) # * 100
-                self.save_model()
+
+                if eval_ppl < self.best_ppl:
+                    self.best_ppl = eval_ppl
+                    self.save_model()
 
             if self.epoch >= self.args.shared_decay_after:
                 utils.update_lr(self.shared_optim, self.shared_lr)
@@ -637,6 +641,26 @@ class HardcodedTrainer(object):
             self.tb.image_summary('derive/best', [path], self.epoch)
 
         return best_dag
+
+    def derive_many(self, sample_num=None):
+        """
+        Just samples a bunch of architectures and returns them along with the hidden state of the controller.
+        To be used by analysis of hidden states, not for model evaluation.
+
+        Args:
+            sample_num: The number of architectures to sample.
+
+        Returns:
+            A list of sampled DAGs, and the corresponding controller hidden state for each DAG.
+        """
+        if sample_num is None:
+            sample_num = self.args.derive_num_sample
+
+        dags, _, entropies, hidden_sampled = self.controller.sample(sample_num,
+                                                                    with_details=True,
+                                                                    return_hidden=True)
+
+        return dags, hidden_sampled
 
     def test(self, sample_num=None, valid_idx=0):
         # Sample a bunch of dags and get the one that performs best on the validation set

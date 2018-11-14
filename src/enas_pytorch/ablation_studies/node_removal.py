@@ -43,7 +43,7 @@ def remove_node_reconnect(dag, remove_idx):
 
         if idx == remove_idx:
             for node in nodes:
-                if node.id != max(dag.keys()):
+                if node.id != max(dag.keys()) or len(nodes) == 1:
                     child_nodes.append(Node(node.id, node.name))
 
             continue
@@ -63,7 +63,7 @@ def remove_node_reconnect(dag, remove_idx):
 
     if parent_idx not in new_dag.keys() and len(child_nodes) > 0:
         new_dag[parent_idx] = child_nodes
-    elif len(child_nodes) > 0:
+    elif len(child_nodes) > 0 and child_nodes[0].id != max(dag.keys()):
         new_dag[parent_idx] += child_nodes
 
     return new_dag
@@ -84,6 +84,7 @@ def main(args):  # pylint:disable=redefined-outer-name
     train_args = DotMap(train_args)
     original_mode = train_args.mode
     train_args.mode = "derive"
+    train_args.load_path = args.load_path
     utils.makedirs(save_dir)
 
     if args.num_gpu > 0:
@@ -97,7 +98,7 @@ def main(args):  # pylint:disable=redefined-outer-name
     else:
         raise NotImplementedError(f"{train_args.dataset} is not supported")
 
-    if train_args.train_type == "enas":
+    if train_args.train_type == "enas" or train_args.train_type == "ours" or train_args.train_type == "orig":
         trnr = regular_trainer.Trainer(train_args, dataset)
     elif train_args.trian_type == 'random':
         trnr = random_trainer.RandomTrainer(train_args, dataset)
@@ -125,13 +126,13 @@ def main(args):  # pylint:disable=redefined-outer-name
         print("Validation PPL when removed node {} is: {}".format(idx, validation_ppl))
         print("Test PPL when removed node {} is: {}".format(idx, test_ppl))
 
+        with open(os.path.join(save_dir, "results.json"), "w") as fp:
+            json.dump(results, fp, indent=4, sort_keys=True)
+
     train_args.mode = original_mode
 
     with open(os.path.join(save_dir, "params.json"), "w") as fp:
         json.dump(train_args.toDict(), fp, indent=4, sort_keys=True)
-
-    with open(os.path.join(save_dir, "results.json"), "w") as fp:
-        json.dump(results, fp, indent=4, sort_keys=True)
 
 
 if __name__ == "__main__":
