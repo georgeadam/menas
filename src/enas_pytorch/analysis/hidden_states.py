@@ -12,6 +12,8 @@ import utils as utils
 
 from network_construction.utils import Node
 
+from scipy.stats import spearmanr
+
 import collections
 import os
 from dotenv import find_dotenv, load_dotenv
@@ -85,10 +87,14 @@ def main(args):  # pylint:disable=redefined-outer-name
     elif train_args.train_type == "hardcoded":
         trnr = hardcoded_trainer.HardcodedTrainer(train_args, dataset)
 
-    dags, hiddens = trnr.derive_many(10)
+    dags, hiddens = trnr.derive_many(100)
     common = {}
     cosine_similarities = {}
     l2_distances = {}
+
+    connections_list = []
+    activations_list = []
+    distances_list = []
 
     for i in range(len(dags)):
         for j in range(i + 1, len(dags)):
@@ -96,9 +102,20 @@ def main(args):  # pylint:disable=redefined-outer-name
                 common_activations, common_connections = count_common_attributes(dags[i], dags[j])
                 common["{}_{}".format(i, j)] = {"activations": common_activations, "connections": common_connections}
                 cosine_similarities["{}_{}".format(i, j)] = cosine_similarity(hiddens[i], hiddens[j]).item()
-                l2_distances["{}_{}".format(i, j)] = torch.norm(hiddens[i] - hiddens[j], 2).item()
+                l2_distance = torch.norm(hiddens[i] - hiddens[j], 2).item()
+                l2_distances["{}_{}".format(i, j)] = l2_distance
 
-    results = {"common_attributes": common, "cosine_similarities": cosine_similarities, "l2_distances": l2_distances}
+                connections_list.append(common_connections)
+                activations_list.append(common_activations)
+                distances_list.append(l2_distance)
+
+    connection_cor = spearmanr(connections_list, distances_list)
+    activation_cor = spearmanr(activations_list, distances_list)
+
+    results = {"connections_l2_distance_spearman": connection_cor,
+               "activations_l2_distance_spearman": activation_cor, "common_attributes": common,
+               "cosine_similarities": cosine_similarities,
+               "l2_distances": l2_distances}
 
     with open(os.path.join(save_dir, "results.json"), "w") as fp:
         json.dump(results, fp, indent=4, sort_keys=True)

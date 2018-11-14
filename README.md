@@ -62,6 +62,22 @@ From Meeting:
     * Do analysis of the controller's findal hidden state after sampling an architecture to see if architectures that
     differ by just a single connection or activation function have similar hidden states in the controller 
 
+5. Random vs Trained Controllers
+    * Train something like 100 sampled architectures from a randomly initialized controller individually until 
+    convergence, and also train 100 sampled architectures from a converged controller individually until convergence 
+    as well
+    * Create density plots of performance for these two groups of models
+    * Run statistical tests to see if differences between the groups are significant
+    * The point is to see if ENAS or DARTS actually provide a benefit, or if it's their limited search space that 
+    makes the  architecture search work
+    
+6. Extending Architecture Search Space
+    * To have more flexible model capacity, the controller should be able to choose the hidden state size of the 
+    shared nodes. Since parameters are shared, we can just take a block from each weight matrix (i.e. if the size of 
+    the weight matrices is 1000x1000 and the controller specifies a hidden state size of 200, then just take a 
+    200x200 chunk starting from the top left of the 1000x1000 matrices.)
+    * The controller should also be able to specify the number of nodes in a cell. For a given iteration, we might? 
+    have to sample DAGs of the same number of nodes in order for this to be compatible with the current setup
     
 * Write up missing term and background, etc.
 
