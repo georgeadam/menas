@@ -64,7 +64,7 @@ data_arg.add_argument('--dataset', type=str, default='ptb')
  # Training / test parameters
 learn_arg = add_argument_group(parser, 'Learning')
 learn_arg.add_argument('--mode', type=str, default='train',
-                       choices=['train', 'derive', 'test'],
+                       choices=['train', 'derive', 'test', 'train_scratch'],
                        help='train: Training ENAS, derive: Deriving Architectures')
 learn_arg.add_argument('--batch_size', type=int, default=64)
 learn_arg.add_argument('--test_batch_size', type=int, default=1)

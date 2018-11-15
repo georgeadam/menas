@@ -6,7 +6,7 @@ def add_arguments(net_arg, data_arg, learn_arg, misc_arg):
 
     # Training / test parameters
     learn_arg.add_argument('--mode', type=str, default='train',
-                           choices=['train', 'derive', 'test'],
+                           choices=['train', 'derive', 'test', 'train_scratch'],
                            help='train: Training ENAS, derive: Deriving Architectures')
     misc_arg.add_argument('--load_path', type=str, default='')
 

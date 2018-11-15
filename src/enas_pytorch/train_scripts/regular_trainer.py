@@ -3,6 +3,7 @@ import contextlib
 import glob
 import math
 import os
+import parse
 
 import numpy as np
 import random
@@ -247,7 +248,7 @@ class Trainer(object):
 
                 if eval_ppl < self.best_ppl:
                     self.best_ppl = eval_ppl
-                    self.save_model()
+                    self.save_model(self.shared_path, self.controller_path)
 
             if self.epoch >= self.args.shared_decay_after:
                 utils.update_lr(self.shared_optim, self.shared_lr)
@@ -575,6 +576,101 @@ class Trainer(object):
             if prev_valid_idx > valid_idx:
                 hidden = self.shared.init_hidden(self.args.batch_size)
 
+    def train_scratch(self):
+        dags = [self.derive()]
+
+        # When load_model() is called, self.epoch and self.shared_step are set to the values from the file name that
+        # was loaded. We reset them here since we are starting a totally different training procedure for the shared
+        # parameters.
+        self.epoch = 0
+        self.shared_step = 0
+
+        model = self.shared
+        model.reset_parameters()
+        model.train()
+
+        max_step = self.args.shared_max_step
+
+        for i in range(0, self.args.max_epoch):
+            # Reset the model to train mode each epoch. evaluate() at the end of the loop sets it to eval() mode.
+            self.shared.train()
+            hidden = self.shared.init_hidden(self.args.batch_size)
+
+            abs_max_grad = 0
+            abs_max_hidden_norm = 0
+            step = 0
+            raw_total_loss = 0
+            total_loss = 0
+            train_idx = 0
+            # TODO(brendan): Why - 1 - 1?
+
+            for _ in range(self.train_data.size(0) - 1 - 1):
+                if step > max_step:
+                    break
+
+                inputs, targets = self.get_batch(self.train_data,
+                                                 train_idx,
+                                                 self.max_length)
+
+                loss, hidden, extra_out = self.get_loss(inputs,
+                                                        targets,
+                                                        hidden,
+                                                        dags)
+                hidden.detach_()
+                raw_total_loss += loss.data
+
+                loss += _apply_penalties(extra_out, self.args)
+
+                # update
+                self.shared_optim.zero_grad()
+                loss.backward()
+
+                h1tohT = extra_out['hiddens']
+                new_abs_max_hidden_norm = utils.to_item(
+                    h1tohT.norm(dim=-1).data.max())
+                if new_abs_max_hidden_norm > abs_max_hidden_norm:
+                    abs_max_hidden_norm = new_abs_max_hidden_norm
+                    # logger.info(f'max hidden {abs_max_hidden_norm}')
+                abs_max_grad = _check_abs_max_grad(abs_max_grad, model)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), self.args.shared_grad_clip)
+
+                self.shared_optim.step()
+
+                total_loss += loss.data
+
+                if ((step % self.args.log_step) == 0) and (step > 0):
+                    self._summarize_shared_train(total_loss, raw_total_loss)
+                    raw_total_loss = 0
+                    total_loss = 0
+
+                step += 1
+                self.shared_step += 1
+                train_idx += self.max_length
+
+            eval_ppl = self.evaluate(self.eval_data,
+                                     dags[0],
+                                     'val_best',
+                                     max_num=self.args.batch_size)  # * 100
+
+            if eval_ppl < self.best_ppl:
+                self.best_ppl = eval_ppl
+                self.save_model(self.scratch_shared_path, None)
+
+            self.epoch += 1
+
+        # Load the best shared model parameters from file. This is done since it is really easy to overfit when
+        # training in the above loop, so we don't want to use overfitted parameters when evaluating performance on
+        # validation/test sets.
+        self.load_model(True)
+        self.shared.eval()
+
+        validation_perplexity = self.get_perplexity_multibatch(self.eval_data, dags[0])
+        test_perplexity = self.get_perplexity_multibatch(self.test_data, dags[0])
+        self.tb.scalar_summary(f'scratch_eval/final_val_ppl', validation_perplexity, self.epoch)
+        self.tb.scalar_summary(f'scratch_eval/final_test_ppl', test_perplexity, self.epoch)
+        print("Averaged perplexity of best DAG on validation set is: {}".format(validation_perplexity))
+        print("Averaged perplexity of best DAG on test set is: {}".format(test_perplexity))
+
     def evaluate(self, source, dag, name, batch_size=1, max_num=None):
         """Evaluate on the validation set.
 
@@ -604,8 +700,13 @@ class Trainer(object):
         val_loss = utils.to_item(total_loss) / len(data)
         ppl = math.exp(val_loss)
 
-        self.tb.scalar_summary(f'eval/{name}_loss', val_loss, self.epoch)
-        self.tb.scalar_summary(f'eval/{name}_ppl', ppl, self.epoch)
+        if self.args.mode == "train_scratch":
+            param_group_name = "eval_scratch"
+        else:
+            param_group_name = "eval"
+
+        self.tb.scalar_summary('{}/{}_loss'.format(param_group_name, name), val_loss, self.epoch)
+        self.tb.scalar_summary('{}/{}_ppl'.format(param_group_name, name), ppl, self.epoch)
         logger.info(f'val eval | loss: {val_loss:8.2f} | ppl: {ppl:8.2f}')
 
         return ppl
@@ -701,22 +802,43 @@ class Trainer(object):
         return f'{self.args.model_dir}/shared_epoch{self.epoch}_step{self.shared_step}.pth'
 
     @property
+    def scratch_shared_path(self):
+        return f'{self.args.model_dir}/scratch-shared_epoch{self.epoch}_step{self.shared_step}.pth'
+
+    @property
     def controller_path(self):
         return f'{self.args.model_dir}/controller_epoch{self.epoch}_step{self.controller_step}.pth'
 
-    def get_saved_models_info(self):
+    def get_saved_models_info(self, scratch=False):
         paths = glob.glob(os.path.join(self.args.model_dir, '*.pth'))
         paths.sort()
 
-        def get_numbers(items, delimiter, idx, replace_word, must_contain=''):
-            return list(set([int(
-                name.split(delimiter)[idx].replace(replace_word, ''))
-                for name in basenames if must_contain in name]))
+        def get_numbers(basenames, template, model, metric):
+            numbers = []
+
+            for name in basenames:
+                parsed = parse.parse(template, name)
+
+                if parsed is None:
+                    continue
+
+                if parsed["model"] == model:
+                    number = int(parsed[metric])
+                    numbers.append(number)
+
+            return list(set(numbers))
+
+        file_template = "{model}_epoch{epoch}_step{step}"
+
+        if scratch:
+            model = "scratch-shared"
+        else:
+            model = "shared"
 
         basenames = [os.path.basename(path.rsplit('.', 1)[0]) for path in paths]
-        epochs = get_numbers(basenames, '_', 1, 'epoch')
-        shared_steps = get_numbers(basenames, '_', 2, 'step', 'shared')
-        controller_steps = get_numbers(basenames, '_', 2, 'step', 'controller')
+        epochs = get_numbers(basenames, file_template, model, "epoch")
+        shared_steps = get_numbers(basenames, file_template, model, "step")
+        controller_steps = get_numbers(basenames, file_template, "controller", "step")
 
         epochs.sort()
         shared_steps.sort()
@@ -724,24 +846,31 @@ class Trainer(object):
 
         return epochs, shared_steps, controller_steps
 
-    def save_model(self):
-        torch.save(self.shared.state_dict(), self.shared_path)
-        logger.info(f'[*] SAVED: {self.shared_path}')
+    def save_model(self, shared_path, controller_path):
+        if shared_path is not None:
+            torch.save(self.shared.state_dict(), shared_path)
+            logger.info(f'[*] SAVED: {shared_path}')
 
-        torch.save(self.controller.state_dict(), self.controller_path)
-        logger.info(f'[*] SAVED: {self.controller_path}')
+        if controller_path is not None:
+            torch.save(self.controller.state_dict(), controller_path)
+            logger.info(f'[*] SAVED: {controller_path}')
 
-        epochs, shared_steps, controller_steps = self.get_saved_models_info()
+        epochs, shared_steps, controller_steps = self.get_saved_models_info(self.args.mode == "train_scratch")
+
+        if self.args.mode == "train_scratch":
+            file_template = "*scratch*_epoch{}_*.pth"
+        else:
+            file_template = "*_epoch{}_*.pth"
 
         for epoch in epochs[:-self.args.max_save_num]:
             paths = glob.glob(
-                os.path.join(self.args.model_dir, f'*_epoch{epoch}_*.pth'))
+                os.path.join(self.args.model_dir, file_template.format(epoch)))
 
             for path in paths:
                 utils.remove_file(path)
 
-    def load_model(self):
-        epochs, shared_steps, controller_steps = self.get_saved_models_info()
+    def load_model(self, scratch=False):
+        epochs, shared_steps, controller_steps = self.get_saved_models_info(scratch)
 
         if len(epochs) == 0:
             logger.info(f'[!] No checkpoint found in {self.args.model_dir}...')
@@ -756,23 +885,19 @@ class Trainer(object):
         else:
             map_location = None
 
-        state_dict = torch.load(self.shared_path)
-        new_state_dict = {}
+        if scratch:
+            shared_path = self.scratch_shared_path
+        else:
+            shared_path = self.shared_path
 
-        if self.args.mode != "train":
-            for key, value in state_dict.items():
-                # TODO (Alex): We should load in batch norm params even when not training.
-                # if "batch" in key or "norm" in key:
-                #     pass
-                # else:
-                new_state_dict[key] = value
+        state_dict = torch.load(shared_path)
+        self.shared.load_state_dict(state_dict, strict=False)
+        logger.info(f'[*] LOADED: {shared_path}')
 
-        self.shared.load_state_dict(new_state_dict, strict=False)
-        logger.info(f'[*] LOADED: {self.shared_path}')
-
-        self.controller.load_state_dict(
-            torch.load(self.controller_path, map_location=map_location))
-        logger.info(f'[*] LOADED: {self.controller_path}')
+        if not scratch:
+            self.controller.load_state_dict(
+                torch.load(self.controller_path, map_location=map_location))
+            logger.info(f'[*] LOADED: {self.controller_path}')
 
     def _summarize_controller_train(self,
                                     total_loss,
@@ -840,11 +965,16 @@ class Trainer(object):
                     f'| loss {cur_loss:.2f} '
                     f'| ppl {ppl:8.2f}')
 
+        if self.args.mode == "train_scratch":
+            param_group_name = "shared_scratch"
+        else:
+            param_group_name = "shared"
+
         # Tensorboard
         if self.tb is not None:
-            self.tb.scalar_summary('shared/loss',
+            self.tb.scalar_summary('{}/loss'.format(param_group_name),
                                    cur_loss,
                                    self.shared_step)
-            self.tb.scalar_summary('shared/perplexity',
+            self.tb.scalar_summary('{}/perplexity'.format(param_group_name),
                                    ppl,
                                    self.shared_step)

@@ -3,6 +3,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --partition=gpu
 #SBATCH --exclude=guppy3,guppy9,guppy4
+#SBATCH --mem=12G
 
 PYTHONPATH=$(pwd)
 export PYTHONPATH
