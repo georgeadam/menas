@@ -666,8 +666,8 @@ class Trainer(object):
 
         validation_perplexity = self.get_perplexity_multibatch(self.eval_data, dags[0])
         test_perplexity = self.get_perplexity_multibatch(self.test_data, dags[0])
-        self.tb.scalar_summary(f'scratch_eval/final_val_ppl', validation_perplexity, self.epoch)
-        self.tb.scalar_summary(f'scratch_eval/final_test_ppl', test_perplexity, self.epoch)
+        self.tb.scalar_summary(f'eval_scratch/final_val_ppl', validation_perplexity, self.epoch)
+        self.tb.scalar_summary(f'eval_scratch/final_test_ppl', test_perplexity, self.epoch)
         print("Averaged perplexity of best DAG on validation set is: {}".format(validation_perplexity))
         print("Averaged perplexity of best DAG on test set is: {}".format(test_perplexity))
 
