@@ -671,7 +671,7 @@ class Trainer(object):
         print("Averaged perplexity of best DAG on validation set is: {}".format(validation_perplexity))
         print("Averaged perplexity of best DAG on test set is: {}".format(test_perplexity))
 
-    def evaluate(self, source, dag, name, batch_size=1, max_num=None):
+    def evaluate(self, source, dag, name, batch_size=1, max_num=None, tb=True):
         """Evaluate on the validation set.
 
         NOTE(brendan): We should not be using the test set to develop the
@@ -700,14 +700,15 @@ class Trainer(object):
         val_loss = utils.to_item(total_loss) / len(data)
         ppl = math.exp(val_loss)
 
-        if self.args.mode == "train_scratch":
-            param_group_name = "eval_scratch"
-        else:
-            param_group_name = "eval"
+        if tb:
+            if self.args.mode == "train_scratch":
+                param_group_name = "eval_scratch"
+            else:
+                param_group_name = "eval"
 
-        self.tb.scalar_summary('{}/{}_loss'.format(param_group_name, name), val_loss, self.epoch)
-        self.tb.scalar_summary('{}/{}_ppl'.format(param_group_name, name), ppl, self.epoch)
-        logger.info(f'val eval | loss: {val_loss:8.2f} | ppl: {ppl:8.2f}')
+            self.tb.scalar_summary('{}/{}_loss'.format(param_group_name, name), val_loss, self.epoch)
+            self.tb.scalar_summary('{}/{}_ppl'.format(param_group_name, name), ppl, self.epoch)
+            logger.info(f'val eval | loss: {val_loss:8.2f} | ppl: {ppl:8.2f}')
 
         return ppl
 
