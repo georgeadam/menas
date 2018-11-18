@@ -153,14 +153,10 @@ class Trainer(object):
                                              args.batch_size,
                                              self.cuda)
             self.eval_data = utils.batchify(dataset.valid,
-                                            # Changed to batch_size for faster computation
-                                            # args.test_batch_size,
-                                            args.batch_size,
+                                            args.test_batch_size,
                                             self.cuda)
             self.test_data = utils.batchify(dataset.test,
-                                            # Changed to batch_size for faster computation
-                                            # args.test_batch_size,
-                                            args.batch_size,
+                                            args.test_batch_size,
                                             self.cuda)
 
         self.max_length = self.args.shared_rnn_max_length
@@ -248,7 +244,8 @@ class Trainer(object):
                     eval_ppl = self.evaluate(self.eval_data,
                                   best_dag,
                                   'val_best',
-                                  max_num=self.args.batch_size) # * 100
+                                  max_num=None) # Can now evaluate on entire dataset since we're using
+                    # [-1,64] instead of [-1, 1] shape, which makes things way faster
 
                 if eval_ppl < self.best_ppl:
                     self.best_ppl = eval_ppl
@@ -436,8 +433,10 @@ class Trainer(object):
         self.shared.eval()
         self.controller.eval()
 
-        # data = source[:max_num * self.max_length]
-        data = source
+        if max_num is None:
+            data = source
+        else:
+            data = source[:max_num * self.max_length]
 
         total_loss = 0
         hidden = self.shared.init_hidden(batch_size)
@@ -660,7 +659,7 @@ class Trainer(object):
             eval_ppl = self.evaluate(self.eval_data,
                                      dags[0],
                                      'val_best',
-                                     max_num=self.args.batch_size)  # * 100
+                                     max_num=None)  # * 100
 
             if eval_ppl < self.best_ppl:
                 self.best_ppl = eval_ppl
@@ -690,7 +689,10 @@ class Trainer(object):
         self.shared.eval()
         self.controller.eval()
 
-        data = source[:max_num * self.max_length]
+        if max_num is None:
+            data = source
+        else:
+            data = source[:max_num * self.max_length]
 
         total_loss = 0
         hidden = self.shared.init_hidden(batch_size)
@@ -726,26 +728,29 @@ class Trainer(object):
         """TODO(brendan): We are always deriving based on the very first batch
         of validation data? This seems wrong...
         """
-        hidden = self.shared.init_hidden(self.args.batch_size)
-
         if sample_num is None:
             sample_num = self.args.derive_num_sample
 
-        dags, _, entropies = self.controller.sample(sample_num,
-                                                    with_details=True)
+        dags, _, entropies = self.controller.sample(sample_num, with_details=True)
 
-        max_R = 0
+        best_ppl = float("inf")
         best_dag = None
         for dag in dags:
-            R, _, ppl = self.get_reward(dag, entropies, hidden, valid_idx)
-            if R.max() > max_R:
-                max_R = R.max()
+            # We can now evaluate performance on entire dataset, not just first batch, so we use
+            # get_perplexity_multibatch
+            # R, _, ppl = self.get_reward(dag, entropies, hidden, valid_idx)
+            # if R.max() > max_R:
+            #     max_R = R.max()
+            #     best_dag = dag
+            ppl = self.get_perplexity_multibatch(self.eval_data, dag, self.args.batch_size, 1)
+
+            if ppl < best_ppl:
+                best_ppl = ppl
                 best_dag = dag
 
-        logger.info(f'derive | max_R: {max_R:8.6f}')
-        logger.info(f'derive | best PPL: {ppl:8.6f}')
+        logger.info(f'derive | best PPL: {best_ppl:8.6f}')
         fname = (f'{self.epoch:03d}-{self.controller_step:06d}-'
-                 f'{max_R:6.4f}-best.png')
+                 f'{best_ppl:6.4f}-best.png')
 
         if create_image:
             path = os.path.join(self.args.model_dir, 'networks', fname)

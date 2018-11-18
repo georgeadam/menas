@@ -82,7 +82,7 @@ def main(args):  # pylint:disable=redefined-outer-name
 
     if train_args.train_type == "enas" or train_args.train_type == "ours" or train_args.train_type == "orig":
         trnr = regular_trainer.Trainer(train_args, dataset)
-    elif train_args.trian_type == 'random': # Does not work for random yet since random has no controller.
+    elif train_args.train_type == 'random': # Does not work for random yet since random has no controller.
         trnr = random_trainer.RandomTrainer(train_args, dataset)
     elif train_args.train_type == "hardcoded":
         trnr = hardcoded_trainer.HardcodedTrainer(train_args, dataset)

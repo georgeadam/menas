@@ -83,8 +83,11 @@ def main(args):  # pylint:disable=redefined-outer-name
     train_args = utils.load_args(args.model_dir)
     train_args = DotMap(train_args)
     original_mode = train_args.mode
+    original_test_batch_size = train_args.test_batch_size  # To make backwards compatible for models whose configs had
+    # test batch size of 1
     train_args.mode = "derive"
     train_args.load_path = args.load_path
+    train_args.test_batch_size = train_args.batch_size
     utils.makedirs(save_dir)
 
     if args.num_gpu > 0:
@@ -100,12 +103,12 @@ def main(args):  # pylint:disable=redefined-outer-name
 
     if train_args.train_type == "enas" or train_args.train_type == "ours" or train_args.train_type == "orig":
         trnr = regular_trainer.Trainer(train_args, dataset)
-    elif train_args.trian_type == 'random':
+    elif train_args.train_type == 'random':
         trnr = random_trainer.RandomTrainer(train_args, dataset)
     elif train_args.train_type == "hardcoded":
         trnr = hardcoded_trainer.HardcodedTrainer(train_args, dataset)
 
-    dag = trnr.derive()
+    dag = trnr.derive(create_image=False)
 
     validation_ppl = trnr.get_perplexity_multibatch(trnr.eval_data, dag)
     print("Original performance on entire validation set: {}".format(validation_ppl))
@@ -130,6 +133,7 @@ def main(args):  # pylint:disable=redefined-outer-name
             json.dump(results, fp, indent=4, sort_keys=True)
 
     train_args.mode = original_mode
+    train_args.test_batch_size = original_test_batch_size
 
     with open(os.path.join(save_dir, "params.json"), "w") as fp:
         json.dump(train_args.toDict(), fp, indent=4, sort_keys=True)

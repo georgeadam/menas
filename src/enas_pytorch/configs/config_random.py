@@ -8,7 +8,7 @@ def add_arguments(net_arg, data_arg, misc_arg, learn_arg):
 
     # Training / test parameters
     learn_arg.add_argument('--mode', type=str, default='train',
-                           choices=['train', 'derive', 'test'],
+                           choices=['train', 'derive', 'test', 'train_scratch'],
                            help='train: Training ENAS, derive: Deriving Architectures')
     learn_arg.add_argument('--max_epoch', type=int, default=int(150000))  # TODO: I changed this
 

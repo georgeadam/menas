@@ -25,6 +25,8 @@ from settings import ROOT_DIR
 from dotmap import DotMap
 import json
 
+import time
+
 logger = utils.get_logger()
 
 
@@ -71,7 +73,7 @@ def main(args):  # pylint:disable=redefined-outer-name
     train_args.mode = "derive"
     train_args.load_path = args.load_path
     train_args.test_batch_size = 1
-    utils.makedirs(save_dir)
+    # utils.makedirs(save_dir)
 
     if args.num_gpu > 0:
         torch.cuda.manual_seed(args.random_seed)
@@ -91,37 +93,39 @@ def main(args):  # pylint:disable=redefined-outer-name
     elif train_args.train_type == "hardcoded":
         trnr = hardcoded_trainer.HardcodedTrainer(train_args, dataset)
 
-    results = {"spearmanr": {}, "pearsonr": {}}
-    dags, hiddens = trnr.derive_many(100)
-    eval_ppls = []
-    derive_ppls = []
-    full_ppls = []
+    dags, hiddens = trnr.derive_many(5)
+
+    batched_times = []
+    batched_ppls = []
+
+    flattened_times = []
+    flattened_ppls = []
 
     for i, dag in enumerate(dags):
-        print(i)
-        hidden = trnr.shared.init_hidden(trnr.args.batch_size)
-        eval_ppl = trnr.evaluate(trnr.eval_data, dag, "val best", max_num=trnr.args.batch_size, tb=False)
-        rewards, hidden, derive_ppl = trnr.get_reward(dag, torch.tensor(1.0), hidden, 0)
-        full_ppl = trnr.get_perplexity_multibatch(trnr.eval_data, dag)
+        batched_start = time.time()
+        batched_ppl = trnr.get_perplexity_multibatch(trnr.valid_data, dag)
+        batched_end = time.time()
 
-        eval_ppls.append(eval_ppl)
-        derive_ppls.append(derive_ppl)
-        full_ppls.append(full_ppl)
+        batched_time = batched_end - batched_start
+        batched_times.append(batched_time)
+        batched_ppls.append(batched_ppl)
 
-        print(eval_ppls)
-        print(derive_ppls)
-        print(full_ppls)
+        flattened_start = time.time()
+        flattened_ppl = trnr.get_perplexity_multibatch(trnr.eval_data, dag)
+        flattened_end = time.time()
 
-    for type in [spearmanr, pearsonr]:
-        results[type.__name__]["eval_derive"] = type(eval_ppls, derive_ppls)
-        results[type.__name__]["eval_full"] = type(eval_ppls, full_ppls)
-        results[type.__name__]["derive_full"] = type(derive_ppls, full_ppls)
+        flattened_time = flattened_end - flattened_start
+        flattened_times.append(flattened_time)
+        flattened_ppls.append(flattened_ppl)
 
-    with open(os.path.join(save_dir, "results.json"), "w") as fp:
-        json.dump(results, fp, indent=4, sort_keys=True)
+        print("Batched PPL: {} took {} to compute".format(batched_ppl, batched_end - batched_start))
+        print("Flattened PPL: {} took {} to compute".format(flattened_ppl, flattened_end - flattened_start))
 
-    with open(os.path.join(save_dir, "params.json"), "w") as fp:
-        json.dump(train_args.toDict(), fp, indent=4, sort_keys=True)
+    # with open(os.path.join(save_dir, "results.json"), "w") as fp:
+    #     json.dump(results, fp, indent=4, sort_keys=True)
+    #
+    # with open(os.path.join(save_dir, "params.json"), "w") as fp:
+    #     json.dump(train_args.toDict(), fp, indent=4, sort_keys=True)
 
 
 if __name__ == "__main__":
