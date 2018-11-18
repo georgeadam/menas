@@ -153,10 +153,14 @@ class Trainer(object):
                                              args.batch_size,
                                              self.cuda)
             self.eval_data = utils.batchify(dataset.valid,
-                                            args.test_batch_size,
+                                            # Changed to batch_size for faster computation
+                                            # args.test_batch_size,
+                                            args.batch_size,
                                             self.cuda)
             self.test_data = utils.batchify(dataset.test,
-                                            args.test_batch_size,
+                                            # Changed to batch_size for faster computation
+                                            # args.test_batch_size,
+                                            args.batch_size,
                                             self.cuda)
 
         self.max_length = self.args.shared_rnn_max_length
@@ -252,6 +256,12 @@ class Trainer(object):
 
             if self.epoch >= self.args.shared_decay_after:
                 utils.update_lr(self.shared_optim, self.shared_lr)
+
+        # Added to test the model on the entire validation and entire test set after training is done.
+        # load_model() is called first to load the best saved params from file as the ones that are
+        # currently in memory could be very overfit.
+        self.load_model()
+        self.test()
 
     def get_loss(self, inputs, targets, hidden, dags):
         """Computes the loss for the same batch for M models.
@@ -940,17 +950,18 @@ class Trainer(object):
                                    avg_adv,
                                    self.controller_step)
 
-            paths = []
-            for dag in dags:
-                fname = (f'{self.epoch:03d}-{self.controller_step:06d}-'
-                         f'{avg_reward:6.4f}.png')
-                path = os.path.join(self.args.model_dir, 'networks', fname)
-                utils.draw_network(dag, path)
-                paths.append(path)
-
-            self.tb.image_summary('controller/sample',
-                                  paths,
-                                  self.controller_step)
+            # This saves way too many images for no reason. It's enough to have this happen in derive()
+            # paths = []
+            # for dag in dags:
+            #     fname = (f'{self.epoch:03d}-{self.controller_step:06d}-'
+            #              f'{avg_reward:6.4f}.png')
+            #     path = os.path.join(self.args.model_dir, 'networks', fname)
+            #     utils.draw_network(dag, path)
+            #     paths.append(path)
+            #
+            # self.tb.image_summary('controller/sample',
+            #                       paths,
+            #                       self.controller_step)
 
     def _summarize_shared_train(self, total_loss, raw_total_loss):
         """Logs a set of training steps."""

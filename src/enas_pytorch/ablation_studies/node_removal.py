@@ -120,8 +120,8 @@ def main(args):  # pylint:disable=redefined-outer-name
         validation_ppl = trnr.get_perplexity_multibatch(trnr.eval_data, temp_dag)
         test_ppl = trnr.get_perplexity_multibatch(trnr.test_data, temp_dag)
 
-        results["validation"][idx] = validation_ppl
-        results["test"][idx] = test_ppl
+        results["validation"][str(idx)] = validation_ppl
+        results["test"][str(idx)] = test_ppl
 
         print("Validation PPL when removed node {} is: {}".format(idx, validation_ppl))
         print("Test PPL when removed node {} is: {}".format(idx, test_ppl))
