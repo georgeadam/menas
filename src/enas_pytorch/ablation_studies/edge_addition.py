@@ -1,4 +1,5 @@
-"""Entry point."""
+"""This ablation  is more like edge replacement. In the case where an edge is adding going to a node that
+already has another edge going into it, that existing edge just gets replaced due to logic """
 import torch
 
 from data.image import Image
@@ -45,12 +46,17 @@ def add_edge(dag, from_idx, to_idx, activation="relu"):
             return False
 
     # If new edge points to the last node in cell, use the avg activation instead of the specified activation
+    new_child = None
+
     if to_idx == max(dag.keys()):
         new_child = Node(to_idx, "avg")
-    else:
+    elif (len(new_dag[from_idx]) == 1 and new_dag[from_idx][0].id != max(dag.keys())) or len(new_dag[from_idx]) > 1:
         new_child = Node(to_idx, activation)
 
-    new_dag[from_idx].append(new_child)
+    if new_child is None:
+        return False
+    else:
+        new_dag[from_idx].append(new_child)
 
     return new_dag
 
@@ -105,7 +111,7 @@ def main(args):  # pylint:disable=redefined-outer-name
     activations = ["tanh", "relu", "sigmoid", "identity"]
 
     for activation in activations:
-        for from_idx in range(0, train_args.num_blocks):
+        for from_idx in range(4, train_args.num_blocks):
             for to_idx in range(from_idx + 1, train_args.num_blocks + 1):
                 temp_dag = add_edge(dag, from_idx, to_idx, activation)
 
