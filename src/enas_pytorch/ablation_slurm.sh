@@ -22,6 +22,9 @@ then
 elif [ "$ablation_study" == "edge_addition" ]
 then
     script=ablation_studies/edge_addition.py
+elif [ "$ablation_study" == "perplexity_speed" ]
+then
+    script=analysis/model_evaluation_speed.py
 fi
 
 python3 $script --load_path=$load_path

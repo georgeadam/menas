@@ -63,7 +63,7 @@ def main(args):  # pylint:disable=redefined-outer-name
     torch.manual_seed(args.random_seed)
     load_dotenv(find_dotenv(), override=True)
 
-    perplexity_correlation_dir = os.environ.get("PERPLEXITY_CORRELATION_DIR")
+    perplexity_correlation_dir = os.environ.get("PERPLEXITY_SPEED_DIR")
     model_dir = os.path.basename(args.model_dir)
     save_dir = os.path.join(ROOT_DIR, perplexity_correlation_dir, model_dir)
 
@@ -73,7 +73,7 @@ def main(args):  # pylint:disable=redefined-outer-name
     train_args.mode = "derive"
     train_args.load_path = args.load_path
     train_args.test_batch_size = 1
-    # utils.makedirs(save_dir)
+    utils.makedirs(save_dir)
 
     if args.num_gpu > 0:
         torch.cuda.manual_seed(args.random_seed)
@@ -93,13 +93,16 @@ def main(args):  # pylint:disable=redefined-outer-name
     elif train_args.train_type == "hardcoded":
         trnr = hardcoded_trainer.HardcodedTrainer(train_args, dataset)
 
-    dags, hiddens = trnr.derive_many(5)
+    dags, hiddens = trnr.derive_many(100)
 
     batched_times = []
     batched_ppls = []
 
     flattened_times = []
     flattened_ppls = []
+
+    results = {"batched": {"times": batched_times, "ppls": batched_ppls}, "flattened": {"times": flattened_times,
+                                                                                        "ppls": flattened_ppls}}
 
     for i, dag in enumerate(dags):
         batched_start = time.time()
@@ -121,11 +124,11 @@ def main(args):  # pylint:disable=redefined-outer-name
         print("Batched PPL: {} took {} to compute".format(batched_ppl, batched_end - batched_start))
         print("Flattened PPL: {} took {} to compute".format(flattened_ppl, flattened_end - flattened_start))
 
-    # with open(os.path.join(save_dir, "results.json"), "w") as fp:
-    #     json.dump(results, fp, indent=4, sort_keys=True)
-    #
-    # with open(os.path.join(save_dir, "params.json"), "w") as fp:
-    #     json.dump(train_args.toDict(), fp, indent=4, sort_keys=True)
+    with open(os.path.join(save_dir, "results.json"), "w") as fp:
+        json.dump(results, fp, indent=4, sort_keys=True)
+
+    with open(os.path.join(save_dir, "params.json"), "w") as fp:
+        json.dump(train_args.toDict(), fp, indent=4, sort_keys=True)
 
 
 if __name__ == "__main__":
