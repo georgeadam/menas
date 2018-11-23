@@ -327,7 +327,8 @@ class RNN(models.shared_base.SharedModel):
 
             for next_node in nodes:
                 next_id = next_node.id
-                if next_id == self.args.num_blocks:
+                # if next_id == self.args.num_blocks:
+                if next_id == max(dag.keys()):
                     leaf_node_ids.append(node_id)
                     assert len(nodes) == 1, ('parent of leaf node should have '
                                              'only one child')
@@ -358,7 +359,8 @@ class RNN(models.shared_base.SharedModel):
         if self.batch_norm is not None:
             output = self.batch_norm(output)
 
-        return output, h[self.args.num_blocks - 1]
+        # return output, h[self.args.num_blocks - 1]
+        return output, h[max(dag.keys()) - 1]
 
     def init_hidden(self, batch_size):
         zeros = torch.zeros(batch_size, self.args.shared_hid)

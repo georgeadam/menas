@@ -2,6 +2,7 @@ from configs.custom_argparse import CustomArgumentParser
 from configs.config_ours import add_arguments as add_arguments_ours
 from configs.config_random import add_arguments as add_arguments_random
 from configs.config_hardcoded import add_arguments as add_arguments_hardcoded
+from configs.config_flexible import add_arguments as add_arguments_flexible
 from configs.helpers import add_argument_group, str2bool
 from utils import get_logger
 
@@ -122,7 +123,7 @@ misc_arg.add_argument('--num-workers', type=int, default=2)
 misc_arg.add_argument('--random_seed', type=int, default=12345)
 misc_arg.add_argument('--use_tensorboard', type=str2bool, default=True)
 misc_arg.add_argument("--train_type", type=str, default="ours",
-                      choices=['orig', 'ours', 'random', 'hardcoded'])
+                      choices=['orig', 'ours', 'random', 'hardcoded', 'flexible'])
 
 def get_args():
     args,  unparsed = parser.parse_known_args()
@@ -134,6 +135,8 @@ def get_args():
     elif args.train_type == 'hardcoded':
         add_arguments_hardcoded(net_arg=net_arg, data_arg=data_arg, misc_arg=misc_arg, learn_arg=learn_arg,
                                 parser=parser)
+    elif args.train_type == 'flexible':
+        add_arguments_flexible(net_arg=net_arg, data_arg=data_arg, misc_arg=misc_arg, learn_arg=learn_arg)
 
     args, unparsed = parser.parse_known_args()
 

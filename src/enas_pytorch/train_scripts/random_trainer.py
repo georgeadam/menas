@@ -56,3 +56,6 @@ class RandomTrainer(Trainer):
 
             if self.epoch >= self.args.shared_decay_after:
                 utils.update_lr(self.shared_optim, self.shared_lr)
+
+        self.load_model()
+        self.test()
