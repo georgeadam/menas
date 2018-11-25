@@ -25,7 +25,6 @@ def add_arguments(net_arg, data_arg, misc_arg, learn_arg, parser):
     # Misc
     misc_arg.add_argument('--load_path', type=str, default='')
     misc_arg.add_argument('--log_step', type=int, default=20)
-    misc_arg.add_argument('--max_save_num', type=int, default=4)
     misc_arg.add_argument('--log_level', type=str, default='INFO', choices=['INFO', 'DEBUG', 'WARN'])
     misc_arg.add_argument('--log_dir', type=str, default='logs')
     misc_arg.add_argument('--data_dir', type=str, default='data')
