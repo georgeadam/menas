@@ -57,6 +57,7 @@ def main(args):  # pylint:disable=redefined-outer-name
     elif args.mode == "train_scratch":
         assert args.load_path != "", ("--load_path should be given in derive mode")
 
+        utils.save_args(args, "scratch_params")
         trnr.train_scratch()
 
 

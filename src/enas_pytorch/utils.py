@@ -267,8 +267,8 @@ def prepare_dirs(args):
 def get_time():
     return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-def save_args(args):
-    param_path = os.path.join(args.model_dir, "params.json")
+def save_args(args, file="params"):
+    param_path = os.path.join(args.model_dir, "{}.json".format(file))
 
     logger.info("[*] MODEL dir: %s" % args.model_dir)
     logger.info("[*] PARAM path: %s" % param_path)

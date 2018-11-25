@@ -10,7 +10,6 @@ def add_arguments(net_arg, data_arg, misc_arg, learn_arg):
     learn_arg.add_argument('--mode', type=str, default='train',
                            choices=['train', 'derive', 'test', 'train_scratch'],
                            help='train: Training ENAS, derive: Deriving Architectures')
-    learn_arg.add_argument('--max_epoch', type=int, default=int(150000))  # TODO: I changed this
 
     # Shared parameters
     learn_arg.add_argument('--shared_max_step', type=int, default=400,
@@ -27,8 +26,6 @@ def add_arguments(net_arg, data_arg, misc_arg, learn_arg):
     # Misc
     misc_arg.add_argument('--load_path', type=str, default='')
     misc_arg.add_argument('--log_step', type=int, default=20)
-    misc_arg.add_argument('--save_epoch', type=int, default=10)
-    misc_arg.add_argument('--max_save_num', type=int, default=4)
     misc_arg.add_argument('--log_level', type=str, default='INFO', choices=['INFO', 'DEBUG', 'WARN'])
     misc_arg.add_argument('--log_dir', type=str, default='logs')
     misc_arg.add_argument('--data_dir', type=str, default='data')

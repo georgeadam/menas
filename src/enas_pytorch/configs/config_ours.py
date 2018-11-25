@@ -21,4 +21,3 @@ def add_arguments(net_arg, data_arg, learn_arg, misc_arg):
     learn_arg.add_argument('--derive_num_sample', type=int, default=100)
 
     # Misc
-    misc_arg.add_argument('--save_epoch', type=int, default=1)
