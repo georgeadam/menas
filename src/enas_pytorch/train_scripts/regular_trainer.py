@@ -259,6 +259,7 @@ class Trainer(object):
         # currently in memory could be very overfit.
         self.load_model()
         self.test()
+        self.indicate_training_complete()
 
     def get_loss(self, inputs, targets, hidden, dags):
         """Computes the loss for the same batch for M models.
@@ -825,6 +826,10 @@ class Trainer(object):
     def controller_path(self):
         return f'{self.args.model_dir}/controller_epoch{self.epoch}_step{self.controller_step}.pth'
 
+    @property
+    def finished_path(self):
+        return "{}/done.txt".format(self.args.model_dir)
+
     def get_saved_models_info(self, scratch=False):
         paths = glob.glob(os.path.join(self.args.model_dir, '*.pth'))
         paths.sort()
@@ -914,6 +919,10 @@ class Trainer(object):
             self.controller.load_state_dict(
                 torch.load(self.controller_path, map_location=map_location))
             logger.info(f'[*] LOADED: {self.controller_path}')
+
+    def indicate_training_complete(self):
+        with open(self.finished_path, "w") as fp:
+            fp.write("Done")
 
     def _summarize_controller_train(self,
                                     total_loss,

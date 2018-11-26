@@ -178,6 +178,7 @@ class FlexibleTrainer(Trainer):
         # currently in memory could be very overfit.
         self.load_model()
         self.test()
+        self.indicate_training_complete()
 
     def train_controller(self):
         """Fixes the shared parameters and updates the controller parameters.

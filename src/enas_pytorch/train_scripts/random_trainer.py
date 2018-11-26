@@ -59,3 +59,4 @@ class RandomTrainer(Trainer):
 
         self.load_model()
         self.test()
+        self.indicate_training_complete()
