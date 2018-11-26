@@ -25,6 +25,9 @@ then
 elif [ "$ablation_study" == "perplexity_speed" ]
 then
     script=analysis/model_evaluation_speed.py
+elif [ "$ablation_study" == "hidden_state_performance" ]
+then
+    script=analysis/hidden_state_performance_similarity.py
 fi
 
 python3 $script --load_path=$load_path

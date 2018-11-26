@@ -1,7 +1,4 @@
-"""This script looks at the correlation between performance on the first batch of size [35, 64] of the validation
-set, and the validation performance on the entire validation set of size [len(validation), 1]. The point is to see if
-the way that the supposed best DAG is evaluated in derive() makes sense in terms of the big picture.
-"""
+"""Entry point."""
 import torch
 
 from data.image import Image
@@ -16,7 +13,7 @@ import utils as utils
 
 from network_construction.utils import Node
 
-from scipy.stats import spearmanr, pearsonr
+from scipy.stats import spearmanr
 
 import collections
 import os
@@ -62,16 +59,15 @@ def main(args):  # pylint:disable=redefined-outer-name
     torch.manual_seed(args.random_seed)
     load_dotenv(find_dotenv(), override=True)
 
-    perplexity_correlation_dir = os.environ.get("PERPLEXITY_CORRELATION_DIR")
+    hidden_state_analysis_dir = os.environ.get("HIDDEN_STATE_SIMILARITY_NAIVE_DIR")
     model_dir = os.path.basename(args.model_dir)
-    save_dir = os.path.join(ROOT_DIR, perplexity_correlation_dir, model_dir)
+    save_dir = os.path.join(ROOT_DIR, hidden_state_analysis_dir, model_dir)
 
     train_args = utils.load_args(args.model_dir)
     train_args = DotMap(train_args)
     original_mode = train_args.mode
     train_args.mode = "derive"
     train_args.load_path = args.load_path
-    train_args.test_batch_size = 1
     utils.makedirs(save_dir)
 
     if args.num_gpu > 0:
@@ -94,31 +90,42 @@ def main(args):  # pylint:disable=redefined-outer-name
     elif train_args.train_type == "flexible":
         trnr = flexible_trainer.FlexibleTrainer(train_args, dataset)
 
-    results = {"spearmanr": {}, "pearsonr": {}}
     dags, hiddens = trnr.derive_many(100)
-    eval_ppls = []
-    derive_ppls = []
-    full_ppls = []
+    common = {}
+    cosine_similarities = {}
+    l2_distances = {}
 
-    for i, dag in enumerate(dags):
-        print(i)
-        hidden = trnr.shared.init_hidden(trnr.args.batch_size)
-        eval_ppl = trnr.evaluate(trnr.eval_data, dag, "val best", max_num=trnr.args.batch_size, tb=False)
-        rewards, hidden, derive_ppl = trnr.get_reward(dag, torch.tensor(1.0), hidden, 0)
-        full_ppl = trnr.get_perplexity_multibatch(trnr.eval_data, dag)
+    connections_list = []
+    activations_list = []
+    distances_list = []
+    cosines_list = []
 
-        eval_ppls.append(eval_ppl)
-        derive_ppls.append(derive_ppl)
-        full_ppls.append(full_ppl)
+    for i in range(len(dags)):
+        for j in range(i + 1, len(dags)):
+            if i != j:
+                common_activations, common_connections = count_common_attributes(dags[i], dags[j])
+                common["{}_{}".format(i, j)] = {"activations": common_activations, "connections": common_connections}
+                cosine_sim = cosine_similarity(hiddens[i], hiddens[j]).item()
+                cosine_similarities["{}_{}".format(i, j)] = cosine_sim
+                l2_distance = torch.norm(hiddens[i] - hiddens[j], 2).item()
+                l2_distances["{}_{}".format(i, j)] = l2_distance
 
-        print(eval_ppls)
-        print(derive_ppls)
-        print(full_ppls)
+                connections_list.append(common_connections)
+                activations_list.append(common_activations)
+                distances_list.append(l2_distance)
+                cosines_list.append(cosine_sim)
 
-    for type in [spearmanr, pearsonr]:
-        results[type.__name__]["eval_derive"] = type(eval_ppls, derive_ppls)
-        results[type.__name__]["eval_full"] = type(eval_ppls, full_ppls)
-        results[type.__name__]["derive_full"] = type(derive_ppls, full_ppls)
+    connection_cor_l2 = spearmanr(connections_list, distances_list)
+    activation_cor_l2 = spearmanr(activations_list, distances_list)
+
+    connection_cor_cosine = spearmanr(connections_list, cosines_list)
+    activation_cor_cosine = spearmanr(activations_list, cosines_list)
+
+    results = {"connections_l2_distance_spearman": connection_cor_l2,
+               "activations_l2_distance_spearman": activation_cor_l2, "common_attributes": common,
+               "cosine_similarities": cosine_similarities,
+               "l2_distances": l2_distances, "connections_cosine_spearman": connection_cor_cosine,
+               "activations_cosine_spearman": activation_cor_cosine}
 
     with open(os.path.join(save_dir, "results.json"), "w") as fp:
         json.dump(results, fp, indent=4, sort_keys=True)
