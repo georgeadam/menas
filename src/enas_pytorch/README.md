@@ -30,9 +30,25 @@ To train **ENAS** to discover a recurrent cell for RNN:
 
     python train_scripts/train_regular.py --network_type rnn --dataset ptb --controller_optim adam \
                                           --controller_lr 0.00035 --shared_optim sgd --shared_lr 20.0 \ 
-                                          --entropy_coeff 0.0001 --train_type orig
+                                          --entropy_coeff 0.0001 --train_type orig --mode train
 
     python train_scripts/train_regular.py --network_type rnn --dataset wikitext --train_type orig
+    
+    
+#### ENAS - Flexible
+
+To train **ENAS** where the controller dynamically chooses how many nodes should be in every sampled DAG as opposed
+to having this be something that the user specifies beforehand run the following command:
+
+    python train_scripts/train_regular.py --network_type rnn --dataset ptb --controller_optim adam \
+                                          --controller_lr 0.00035 --shared_optim sgd --shared_lr 20.0 \ 
+                                          --entropy_coeff 0.0001 --train_type flexible --mode train \
+                                          --num_blocks 12
+                                          
+Note that `--num_blocks` now dictates the *maximum* number of nodes that a sampled DAG can have. Keep this greater
+than or equal to 3. Current code overwrites any number sampled less than 3 with 3, though that might ruin the gradient 
+signal somehow (needs checking).
+
     
 #### Hardcoded Architectures
 
@@ -40,11 +56,13 @@ To train **ENAS** to figure out just the activation function combination for a g
 
     python train_scripts/train_regular.py --network_type rnn --dataset ptb --controller_optim adam \
                                           --controller_lr 0.00035 --shared_optim sgd --shared_lr 20.0 \ 
-                                          --entropy_coeff 0.0001 --train_type hardcoded --architecture tree
+                                          --entropy_coeff 0.0001 --train_type hardcoded --architecture tree \
+                                          --mode train
                                         
     python train_scripts/train_regular.py --network_type rnn --dataset ptb --controller_optim adam \
                                           --controller_lr 0.00035 --shared_optim sgd --shared_lr 20.0 \ 
-                                          --entropy_coeff 0.0001 --train_type hardcoded --architecture chain    
+                                          --entropy_coeff 0.0001 --train_type hardcoded --architecture chain \
+                                          --mode train   
     
 #### Random Architectures
 
@@ -52,7 +70,26 @@ To train shared parameters by sampling random architectures instead of using a c
 
     python train_scripts/train_regular.py --network_type rnn --dataset ptb --controller_optim adam \
                                           --controller_lr 0.00035 --shared_optim sgd --shared_lr 20.0 \ 
-                                          --entropy_coeff 0.0001 --train_type random    
+                                          --entropy_coeff 0.0001 --train_type random --mode train
+                                              
+#### Training From Scratch
+
+To train from scratch according to the following procedure
+
+* Load trained controller and shared parameters, *C* and *S* respectively from dir specified by `load_path`
+* (Note that you need to specify the correct `train_type` that was used to train *C* and *S*. This will be in `load_path`
+name like `ptb_{train_type}_{datetime}`.
+* Sample a decent architecture *A* via the `derive()` method using *C* and *S* 
+* Reset the shared parameters to random initialization and train them from scratch for the sampled architecture. 
+Controller no longer used
+
+run the following command
+
+    python train_scripts/train_regular.py --network_type rnn --dataset ptb --train_type orig 
+                                          --mode train_scratch
+                                          
+Specify different parameters such as `--max_epoch x` to train for more or less epochs than were used to 
+train ENAS.
 
 ### Convolutional Cell Search (in progress)
 
@@ -90,12 +127,25 @@ More configurations can be found [here](configs/config_ours.py).
 
 ## Ablation Studies
 
+Results of ablation studies will be stored in the `analysis_results` dir which will be automatically created if it 
+does not yet exist. There, results are further separated into different subdirectories based on the ablation study
+name.
+
 ### Activation Function Replacement
 
 To see the effect of replacing all activation functions with a single type for all possible types of activation 
 functions:
 
     python ablation_studies/activation_replacement.py --load_path=ptb_2018-02-15_11-20-02 --mode=derive
+    
+### Node Removal
+
+To see the effect of removing single nodes from a DAG *G* sampled via the `derive()` method for an already trained set
+of controller and shared parameters, *C* and *S* respectively that were saved in the log directory given by 
+`--load_path`, run the 
+following command
+
+    python ablation_studies/node_removal.py --load_path=ptb_orig_2018-11-25_17-22-36 --mode=derive
 
 
 ## Results
