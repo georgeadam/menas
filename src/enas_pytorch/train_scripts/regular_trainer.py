@@ -680,6 +680,7 @@ class Trainer(object):
         self.tb.scalar_summary(f'eval_scratch/final_test_ppl', test_perplexity, self.epoch)
         print("Averaged perplexity of best DAG on validation set is: {}".format(validation_perplexity))
         print("Averaged perplexity of best DAG on test set is: {}".format(test_perplexity))
+        self.indicate_training_complete()
 
     def evaluate(self, source, dag, name, batch_size=1, max_num=None, tb=True):
         """Evaluate on the validation set.
@@ -828,7 +829,7 @@ class Trainer(object):
 
     @property
     def finished_path(self):
-        return "{}/done.txt".format(self.args.model_dir)
+        return "{}/{}_done.txt".format(self.args.model_dir, self.args.mode)
 
     def get_saved_models_info(self, scratch=False):
         paths = glob.glob(os.path.join(self.args.model_dir, '*.pth'))
