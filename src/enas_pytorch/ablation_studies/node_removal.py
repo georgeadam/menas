@@ -118,7 +118,7 @@ def main(args):  # pylint:disable=redefined-outer-name
     test_ppl = trnr.get_perplexity_multibatch(trnr.test_data, dag)
     print("Original performance on entire test set: {}".format(test_ppl))
 
-    nodes = set(range(1, train_args.num_blocks))
+    nodes = set(range(1, max(dag.keys()) - 1))
     results = {"validation": {"original_performance": validation_ppl}, "test": {"original_performance": test_ppl}}
 
     for idx in nodes:
@@ -134,6 +134,26 @@ def main(args):  # pylint:disable=redefined-outer-name
 
         with open(os.path.join(save_dir, "results.json"), "w") as fp:
             json.dump(results, fp, indent=4, sort_keys=True)
+
+    results["validation"]["max_improvement"] = float("-inf")
+    results["validation"]["max_decrease"] = float("inf")
+    results["test"]["max_improvement"] = float("-inf")
+    results["test"]["max_decrease"] = float("inf")
+
+    for t in ["validation", "test"]:
+        for node in nodes:
+            value = results[t][str(node)]
+
+            diff = results[t]["original_performance"] - value
+
+            if diff > 0 and diff > results[t]["max_improvement"]:
+                results[t]["max_improvement"] = diff
+
+            if diff < 0 and diff < results[t]["max_decrease"]:
+                results[t]["max_decrease"] = diff
+
+    with open(os.path.join(save_dir, "results.json"), "w") as fp:
+        json.dump(results, fp, indent=4, sort_keys=True)
 
     train_args.mode = original_mode
     train_args.test_batch_size = original_test_batch_size
