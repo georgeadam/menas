@@ -151,7 +151,8 @@ def _clip(grads, max_norm):
 class Architect(object):
 
   def __init__(self, model, args):
-    self.diff_through_unrolled = False  # TODO: I added this line
+    self.diff_through_unrolled = args.diff_unrolled # TODO: I added this line
+    self.extrapolate_past = args.extrapolate_past
     #TODO: Add averaging the iterates
     self.arch_step = 0
     self.network_weight_decay = args.wdecay
@@ -163,31 +164,56 @@ class Architect(object):
     # t0 = too is about 2 epochs
 
   def _compute_unrolled_model(self, hidden, input, target, eta, network_optimizer):
-    #loss, hidden_next = self.model._loss(hidden, input, target)
     theta = _concat(self.model.parameters()).data
-    #grads = torch.autograd.grad(loss, self.model.parameters())
-    #for key,val in network_optimizer.param_groups[0].items():
-        #print(key)
-    #print(network_optimizer.param_groups[0]['params'])
-    #print(network_optimizer.param_groups[0]['params'][0])
-    #print(network_optimizer.state[network_optimizer.param_groups[0]['params'][0]])
+
+    # This is the original unrolling for hessian approx
+    if self.diff_through_unrolled:
+        # Extrapolation
+        loss, hidden_next = self.model._loss(hidden, input, target)
+        grads = torch.autograd.grad(loss, self.model.parameters())
+        clip_coef = _clip(grads, self.network_clip)
+        grads = _concat(grads).data
+        dtheta = grads + self.network_weight_decay * theta
+        unrolled_model = self._construct_model_from_theta(theta.sub(eta, dtheta))
+        return unrolled_model, clip_coef
+
+    # This breaks early incase we have no prior grad
+    clip_coef = None
     for p in network_optimizer.param_groups[0]['params']:
         if p.grad is None:
             unrolled_model = self._construct_model_from_theta(theta)
-            return unrolled_model, None
+            return unrolled_model, clip_coef
+
+    if self.extrapolate_past:
+        # Extrapolation through the past
+        grads = [p.grad for p in self.model.parameters()]
+        grads = _concat(grads).data
+    else:
+        # Extrapolation
+        loss, hidden_next = self.model._loss(hidden, input, target)
+        grads = torch.autograd.grad(loss, self.model.parameters())
+        clip_coef = _clip(grads, self.network_clip)
+        grads = _concat(grads).data
+
+
+    '''
+    # The adam formulations
     exp_avg = _concat([network_optimizer.state[p]['exp_avg'] if p.grad is not None else None
               for p in network_optimizer.param_groups[0]['params']])
     exp_avg_sq = _concat([network_optimizer.state[p]['exp_avg_sq'] if p.grad is not None else None
               for p in network_optimizer.param_groups[0]['params']])
-    # print(exp_avg[0])
-    #exit(1)
-    grads = exp_avg.div(exp_avg_sq.sqrt().add_(1e-8))
-    # clip_coef = _clip(grads, self.network_clip)
-    dtheta = grads + self.network_weight_decay*theta#_concat(grads).data + self.network_weight_decay*theta
+    grads, clip_coef = _clip(exp_avg.div(exp_avg_sq.sqrt().add_(1e-8)), self.network_clip, use_data=False)'''
+
+    '''
+    # The momentum formulation
+    moms = _concat([network_optimizer.state[p]['momentum_buffer'] if p.grad is not None else None
+              for p in network_optimizer.param_groups[0]['params']])
+    grads, clip_coef = _clip(moms, self.network_clip, use_data=False)'''
+
+    dtheta = grads + self.network_weight_decay*theta
     unrolled_model = self._construct_model_from_theta(theta.sub(eta, dtheta))
 
-    # TODO: The unrolled depends on the weight optimizer.  I implemented adam here?
-    return unrolled_model, None #clip_coef
+    return unrolled_model, clip_coef
 
   def step(self,
           hidden_train, input_train, target_train,
@@ -229,14 +255,14 @@ class Architect(object):
         parameter.require_grad = True
 
     dalpha = [v.grad for v in unrolled_model.arch_parameters()]
-    # TODO: How can i stop the gradient computation of model_parameters?
-    #dtheta = [v.grad for v in unrolled_model.parameters()]
-    #_clip(dtheta, self.network_clip)
-    #vector = [dt.data for dt in dtheta]
-    #implicit_grads = self._hessian_vector_product(vector, hidden_train, input_train, target_train, r=1e-2)
+    if self.diff_through_unrolled:  # TODO: Only do the hessian approx if we are diffing through unrolled.
+        dtheta = [v.grad for v in unrolled_model.parameters()]
+        _clip(dtheta, self.network_clip)
+        vector = [dt.data for dt in dtheta]
+        implicit_grads = self._hessian_vector_product(vector, hidden_train, input_train, target_train, r=1e-2)
 
-    #for g, ig in zip(dalpha, implicit_grads):
-    #  g.data.sub_(eta * clip_coef, ig.data)
+        for g, ig in zip(dalpha, implicit_grads):
+            g.data.sub_(eta * clip_coef, ig.data)
 
     for v, g in zip(self.model.arch_parameters(), dalpha):
       if v.grad is None:

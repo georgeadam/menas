@@ -29,7 +29,7 @@ parser.add_argument('--nhidlast', type=int, default=850,
                     help='number of hidden units for the last rnn layer')
 parser.add_argument('--lr', type=float, default=20,
                     help='initial learning rate')
-parser.add_argument('--clip', type=float, default=0.25,
+parser.add_argument('--clip', type=float, default=0.075,#25,  # TODO: Changed from 0.25
                     help='gradient clipping')
 parser.add_argument('--epochs', type=int, default=8000,
                     help='upper epoch limit')
@@ -57,11 +57,11 @@ parser.add_argument('--log-interval', type=int, default=200, metavar='N',
                     help='report interval')
 parser.add_argument('--save', type=str,  default='EXP',
                     help='path to save the final model')
-parser.add_argument('--alpha', type=float, default=0,
+parser.add_argument('--alpha', type=float, default=0,#1e-3, # 0 # TODO: I added this..
                     help='alpha L2 regularization on RNN activation (alpha = 0 means no regularization)')
 parser.add_argument('--beta', type=float, default=1e-3,
                     help='beta slowness regularization applied on RNN activiation (beta = 0 means no regularization)')
-parser.add_argument('--wdecay', type=float, default=8e-7,
+parser.add_argument('--wdecay', type=float, default=8e-7, #8e-7, # TODO: I changed this
                     help='weight decay applied to all weights')
 parser.add_argument('--continue_train', action='store_true',
                     help='continue train from a checkpoint')
@@ -116,6 +116,7 @@ test_data = batchify(corpus.test, test_batch_size, args)
 
 ntokens = len(corpus.dictionary)
 if args.continue_train:
+    genotype = eval("genotypes.%s" % args.arch)
     model = torch.load(os.path.join(args.save, 'model.pt'))
 else:
     genotype = eval("genotypes.%s" % args.arch)
@@ -196,6 +197,7 @@ def train():
               loss = loss + sum(args.alpha * dropped_rnn_h.pow(2).mean() for dropped_rnn_h in dropped_rnn_hs[-1:])
             # Temporal Activation Regularization (slowness)
             loss = loss + sum(args.beta * (rnn_h[1:] - rnn_h[:-1]).pow(2).mean() for rnn_h in rnn_hs[-1:])
+            # TODO: Commented this out for numerical errors?
             loss *= args.small_batch_size / args.batch_size
             total_loss += raw_loss.data * args.small_batch_size / args.batch_size
             loss.backward()
@@ -214,7 +216,8 @@ def train():
         optimizer.param_groups[0]['lr'] = lr2
 
         if np.isnan(total_loss[0]):
-          raise
+            print("nan loss")
+            raise Exception
 
         if batch % args.log_interval == 0 and batch > 0:
             cur_loss = total_loss[0] / args.log_interval
@@ -238,7 +241,9 @@ try:
     if args.continue_train:
         optimizer_state = torch.load(os.path.join(args.save, 'optimizer.pt'))
         if 't0' in optimizer_state['param_groups'][0]:
-            optimizer = torch.optim.ASGD(model.parameters(), lr=args.lr, t0=0, lambd=0., weight_decay=args.wdecay)
+            optimizer = torch.optim.ASGD(model.parameters(), lr=args.lr, t0=0, weight_decay=args.wdecay, lambd=0.,
+                                         alpha=0.9)
+
         else:
             optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, weight_decay=args.wdecay)
         optimizer.load_state_dict(optimizer_state)
@@ -249,9 +254,11 @@ try:
     while epoch < args.epochs + 1:
         epoch_start_time = time.time()
         try:
-          train()
-        except:
-          logging.info('rolling back to the previous best model ...')
+            train()
+        except Exception as e:
+          print(e)
+          logging.info(f'rolling back to the previous best model ...{e}')
+          args.clip *= 0.9
           model = torch.load(os.path.join(args.save, 'model.pt'))
           parallel_model = model.cuda()
           

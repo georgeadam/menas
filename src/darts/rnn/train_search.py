@@ -21,100 +21,54 @@ import math
 import torch
 from torch.optim import Optimizer
 
+import PIL
+import scipy.misc
+from io import BytesIO
+import tensorboardX as tbx
+from tensorboardX.summary import Summary
+class TensorBoard(object):
+    def __init__(self, model_dir):
+        self.summary_writer = tbx.FileWriter(model_dir)
 
-class my_ASGD(Optimizer):
-    """Implements Averaged Stochastic Gradient Descent.
+    def image_summary(self, tag, value, step):
+        for idx, img in enumerate(value):
+            summary = Summary()
+            bio = BytesIO()
 
-    It has been proposed in `Acceleration of stochastic approximation by
-    averaging`_.
+            if type(img) == str:
+                img = PIL.Image.open(img)
+            elif type(img) == PIL.Image.Image:
+                pass
+            else:
+                img = scipy.misc.toimage(img)
 
-    Arguments:
-        params (iterable): iterable of parameters to optimize or dicts defining
-            parameter groups
-        lr (float, optional): learning rate (default: 1e-2)
-        lambd (float, optional): decay term (default: 1e-4)
-        alpha (float, optional): power for eta update (default: 0.75)
-        t0 (float, optional): point at which to start averaging (default: 1e6)
-        weight_decay (float, optional): weight decay (L2 penalty) (default: 0)
+            img.save(bio, format="png")
+            image_summary = Summary.Image(encoded_image_string=bio.getvalue())
+            summary.value.add(tag=f"{tag}/{idx}", image=image_summary)
+            self.summary_writer.add_summary(summary, global_step=step)
 
-    .. _Acceleration of stochastic approximation by averaging:
-        http://dl.acm.org/citation.cfm?id=131098
-    """
-
-    def __init__(self, params, lr=1e-2, lambd=1e-4, alpha=0.75, t0=100, weight_decay=0):
-        if not 0.0 <= lr:
-            raise ValueError("Invalid learning rate: {}".format(lr))
-        if not 0.0 <= weight_decay:
-            raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
-
-        defaults = dict(lr=lr, lambd=lambd, alpha=alpha, t0=t0,
-                        weight_decay=weight_decay)
-        self.mu_offset = 0
-        super(my_ASGD, self).__init__(params, defaults)
-
-    def step(self, closure=None):
-        """Performs a single optimization step.
-
-        Arguments:
-            closure (callable, optional): A closure that reevaluates the model
-                and returns the loss.
-        """
-        loss = None
-        if closure is not None:
-            loss = closure()
-
-        for group in self.param_groups:
-            for p in group['params']:
-                if p.grad is None:
-                    continue
-                grad = p.grad.data
-                if grad.is_sparse:
-                    raise RuntimeError('ASGD does not support sparse gradients')
-                state = self.state[p]
-
-                # State initialization
-                if len(state) == 0:
-                    state['step'] = 0
-                    state['eta'] = group['lr']
-                    state['mu'] = 1
-                    state['ax'] = torch.zeros_like(p.data)
-
-                state['step'] += 1
-
-                if group['weight_decay'] != 0:
-                    grad = grad.add(group['weight_decay'], p.data)
-
-                # decay term
-                p.data.mul_(1 - group['lambd'] * state['eta'])
-
-                # update parameter
-                p.data.add_(-state['eta'], grad)
-
-                # averaging
-                if state['mu'] != 1:
-                    state['ax'].add_(p.data.sub(state['ax']).mul(state['mu']))
-                else:
-                    state['ax'].copy_(p.data)
-
-                #if state['step'] % group['t0'] == 0:
-                #    p.data.copy_(state['ax'])
-                #    self.mu_offset = state['step']
-
-                # update eta and mu
-                state['eta'] = (group['lr'] /
-                                math.pow((1 + group['lambd'] * group['lr'] * state['step']), group['alpha']))
-                state['mu'] = 1 / max(1, state['step'] - self.mu_offset)# - group['t0'])
-
-        return loss
+    def scalar_summary(self, tag, value, step):
+        summary= Summary(value=[Summary.Value(tag=tag, simple_value=value)])
+        self.summary_writer.add_summary(summary, global_step=step)
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank/WikiText2 Language Model')
+
+parser.add_argument('--diff_unrolled', action='store_true', default=False,
+                    help='If we should differentiate through the unrolled model')
+parser.add_argument('--extrapolate_past', action='store_true', default=False,
+                    help='If we should differentiate through the unrolled model')
+
+
+
 parser.add_argument('--data', type=str, default='../data/penn/',
                     help='location of the data corpus')
-parser.add_argument('--emsize', type=int, default=300,
+size_default = 300  # 300
+batch_size_default = 64  # + 128 + 32  # 256
+parser.add_argument('--emsize', type=int, default=size_default,  # 300,
                     help='size of word embeddings')
-parser.add_argument('--nhid', type=int, default=300,
+parser.add_argument('--nhid', type=int, default=size_default,  # 300,
                     help='number of hidden units per layer')
-parser.add_argument('--nhidlast', type=int, default=300,
+parser.add_argument('--nhidlast', type=int, default=size_default,  # 300,
                     help='number of hidden units for the last rnn layer')
 parser.add_argument('--lr', type=float, default=20,
                     help='initial learning rate')
@@ -122,7 +76,7 @@ parser.add_argument('--clip', type=float, default=0.25,
                     help='gradient clipping')
 parser.add_argument('--epochs', type=int, default=15000,
                     help='upper epoch limit')
-parser.add_argument('--batch_size', type=int, default=256, metavar='N',
+parser.add_argument('--batch_size', type=int, metavar='N', default=batch_size_default,  # 256,
                     help='batch size')
 parser.add_argument('--bptt', type=int, default=35,
                     help='sequence length')
@@ -142,7 +96,7 @@ parser.add_argument('--nonmono', type=int, default=5,
                     help='random seed')
 parser.add_argument('--cuda', action='store_false',
                     help='use CUDA')
-parser.add_argument('--log-interval', type=int, default=50, metavar='N',
+parser.add_argument('--log-interval', type=int, default=5, metavar='N',
                     help='report interval')
 parser.add_argument('--save', type=str,  default='EXP',
                     help='path to save the final model')
@@ -170,6 +124,25 @@ parser.add_argument('--arch_lr', type=float, default=3e-3,
                     help='learning rate for the architecture encoding alpha')
 args = parser.parse_args()
 
+
+
+extrapolate_text = 'Extrapolate'
+if args.extrapolate_past:
+    extrapolate_text = 'PastExtrapolate'
+
+diff_unrolled_text = 'NoDiffUnroll'
+if args.diff_unrolled:
+    diff_unrolled_text = 'DiffUnroll'
+    extrapolate_text = ''  # No extrapolate if we don't unroll
+
+unroll_text = 'NoUnroll'
+if args.unrolled:
+    unroll_text = 'Unroll'
+else:  # Can't diff through unrolling if no unrolling
+    diff_unrolled_text = ''
+    extrapolate_text = ''
+args.save += '-' + unroll_text + '-' + diff_unrolled_text + '-' + extrapolate_text
+
 if args.nhidlast < 0:
     args.nhidlast = args.emsize
 if args.small_batch_size < 0:
@@ -178,6 +151,8 @@ if args.small_batch_size < 0:
 if not args.continue_train:
     args.save = 'search-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S"))
     create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
+
+tb = TensorBoard(args.save.split('/')[-1])
 
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
@@ -256,6 +231,7 @@ def evaluate(data_source, batch_size=10):
     return total_loss[0] / len(data_source)
 
 
+shared_step = 0
 def train():
     assert args.batch_size % args.small_batch_size == 0, 'batch_size must be divisible by small_batch_size'
 
@@ -266,7 +242,7 @@ def train():
     hidden = [model.init_hidden(args.small_batch_size) for _ in range(args.batch_size // args.small_batch_size)]
     hidden_valid = [model.init_hidden(args.small_batch_size) for _ in range(args.batch_size // args.small_batch_size)]
     batch, i = 0, 0
-    shared_step = 0
+
     while i < train_data.size(0) - 1 - 1:
         bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
         # Prevent excessively small or negative sequence lengths
@@ -326,20 +302,24 @@ def train():
         # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs.
         torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
         optimizer.step()
-        #shared_step += 1
+        global shared_step
+        shared_step += 1
 
         # total_loss += raw_loss.data
         optimizer.param_groups[0]['lr'] = lr2
         if batch % args.log_interval == 0 and batch > 0:
             logging.info(parallel_model.genotype())
-            print(F.softmax(parallel_model.weights, dim=-1))
+            print(parallel_model.genotype())
+            #print(F.softmax(parallel_model.weights, dim=-1))
             # TODO: I Commented out this print above.
             cur_loss = total_loss[0] / args.log_interval
             elapsed = time.time() - start_time
-            logging.info('| epoch {:3d} | {:5d}/{:5d} batches | lr {:02.2f} | ms/batch {:5.2f} | '
-                    'loss {:5.2f} | ppl {:8.2f}'.format(
+            log_str = '| epoch {:3d} | {:5d}/{:5d} batches | lr {:02.2f} | ms/batch {:5.2f} | loss {:5.2f} | ppl {:8.2f}'.format(
                 epoch, batch, len(train_data) // args.bptt, optimizer.param_groups[0]['lr'],
-                elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss)))
+                elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss))
+            logging.info(log_str)
+            print(log_str)
+            tb.scalar_summary(f'train/train_ppl', math.exp(cur_loss), shared_step)
             total_loss = 0
             start_time = time.time()
         batch += 1
@@ -358,9 +338,9 @@ if args.continue_train:
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, weight_decay=args.wdecay)
     optimizer.load_state_dict(optimizer_state)
 else:
-    #optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, weight_decay=args.wdecay)
+    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, weight_decay=args.wdecay) #, momentum=0.9, nesterov=True)
     #optimizer = my_ASGD(model.parameters(), lr=args.lr, weight_decay=args.wdecay)
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.arch_lr, weight_decay=args.wdecay)
+    #optimizer = torch.optim.Adam(model.parameters(), lr=args.arch_lr, weight_decay=args.wdecay)
     # TODO: I CHANGED THIS TO ASGD
 
 for epoch in range(1, args.epochs+1):
@@ -369,9 +349,12 @@ for epoch in range(1, args.epochs+1):
 
     val_loss = evaluate(val_data, eval_batch_size)
     logging.info('-' * 89)
-    logging.info('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
-            'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
-                                       val_loss, math.exp(val_loss)))
+    log_str = '| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | valid ppl {:8.2f}'.format(epoch,
+                                     (time.time() - epoch_start_time),
+                                       val_loss, math.exp(val_loss))
+    logging.info(log_str)
+    print(log_str)
+    tb.scalar_summary(f'train/val_ppl', math.exp(val_loss), shared_step)
     logging.info('-' * 89)
 
     if val_loss < stored_loss:
