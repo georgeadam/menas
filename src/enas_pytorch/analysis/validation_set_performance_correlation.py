@@ -11,6 +11,7 @@ from configs import config_ablation as config
 from train_scripts import regular_trainer
 from train_scripts import random_trainer
 from train_scripts import hardcoded_trainer
+from train_scripts import flexible_trainer
 import utils as utils
 
 from network_construction.utils import Node
@@ -90,9 +91,11 @@ def main(args):  # pylint:disable=redefined-outer-name
         trnr = random_trainer.RandomTrainer(train_args, dataset)
     elif train_args.train_type == "hardcoded":
         trnr = hardcoded_trainer.HardcodedTrainer(train_args, dataset)
+    elif train_args.train_type == "flexible":
+        trnr = flexible_trainer.FlexibleTrainer(train_args, dataset)
 
     results = {"spearmanr": {}, "pearsonr": {}}
-    dags, hiddens = trnr.derive_many(100)
+    dags = trnr.derive_many(100)
     eval_ppls = []
     derive_ppls = []
     full_ppls = []

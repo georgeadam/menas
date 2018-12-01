@@ -1,7 +1,4 @@
-"""This script looks at the correlation between performance on the first batch of size [35, 64] of the validation
-set, and the validation performance on the entire validation set of size [len(validation), 1]. The point is to see if
-the way that the supposed best DAG is evaluated in derive() makes sense in terms of the big picture.
-"""
+"""Entry point."""
 import torch
 
 from data.image import Image
@@ -16,7 +13,7 @@ import utils as utils
 
 from network_construction.utils import Node
 
-from scipy.stats import spearmanr, pearsonr
+from scipy.stats import spearmanr
 
 import collections
 import os
@@ -26,28 +23,7 @@ from settings import ROOT_DIR
 from dotmap import DotMap
 import json
 
-import time
-
 logger = utils.get_logger()
-
-
-def count_common_attributes(dag1, dag2):
-    common_activations = 0
-    common_connections = 0
-
-    for idx in dag1.keys():
-        nodes1 = dag1[idx]
-        nodes2 = dag2[idx]
-
-        for node1 in nodes1:
-            for node2 in nodes2:
-                if node1.id == node2.id:
-                    common_connections += 1
-
-                if node1.id == node2.id and node1.name == node2.name:
-                    common_activations += 1
-
-    return common_activations, common_connections
 
 
 def cosine_similarity(x, y):
@@ -64,16 +40,15 @@ def main(args):  # pylint:disable=redefined-outer-name
     torch.manual_seed(args.random_seed)
     load_dotenv(find_dotenv(), override=True)
 
-    perplexity_correlation_dir = os.environ.get("PERPLEXITY_SPEED_DIR")
+    hidden_state_analysis_dir = os.environ.get("HIDDEN_STATE_SIMILARITY_PERFORMANCE_DIR")
     model_dir = os.path.basename(args.model_dir)
-    save_dir = os.path.join(ROOT_DIR, perplexity_correlation_dir, model_dir)
+    save_dir = os.path.join(ROOT_DIR, hidden_state_analysis_dir, model_dir)
 
     train_args = utils.load_args(args.model_dir)
     train_args = DotMap(train_args)
     original_mode = train_args.mode
     train_args.mode = "derive"
     train_args.load_path = args.load_path
-    train_args.test_batch_size = 1
     utils.makedirs(save_dir)
 
     if args.num_gpu > 0:
@@ -96,36 +71,39 @@ def main(args):  # pylint:disable=redefined-outer-name
     elif train_args.train_type == "flexible":
         trnr = flexible_trainer.FlexibleTrainer(train_args, dataset)
 
-    dags = trnr.derive_many(100)
+    dags, hiddens, probabilities = trnr.derive_many(100, return_hidden=True)
+    cosine_similarities = {}
+    l2_distances = {}
+    validation_ppls = {}
 
-    batched_times = []
-    batched_ppls = []
+    distances_list = []
+    ppl_diff_list = []
+    cosines_list = []
 
-    flattened_times = []
-    flattened_ppls = []
+    for i in range(len(dags)):
+        validation_ppl_i = trnr.get_perplexity_multibatch(trnr.eval_data, dags[i])
 
-    results = {"batched": {"times": batched_times, "ppls": batched_ppls}, "flattened": {"times": flattened_times,
-                                                                                        "ppls": flattened_ppls}}
+        for j in range(i + 1, len(dags)):
+            if i != j:
+                validation_ppl_j = trnr.get_perplexity_multibatch(trnr.eval_data, dags[j])
+                cosine_sim = cosine_similarity(hiddens[i], hiddens[j]).item()
+                cosine_similarities["{}_{}".format(i, j)] = cosine_sim
+                l2_distance = torch.norm(hiddens[i] - hiddens[j], 2).item()
+                l2_distances["{}_{}".format(i, j)] = l2_distance
+                validation_ppls["{}_{}".format(i, j)] = "{}_{}".format(validation_ppl_i, validation_ppl_j)
 
-    for i, dag in enumerate(dags):
-        batched_start = time.time()
-        batched_ppl = trnr.get_perplexity_multibatch(trnr.valid_data, dag)
-        batched_end = time.time()
+                distances_list.append(l2_distance)
+                ppl_diff_list.append(abs(validation_ppl_i - validation_ppl_j))
+                cosines_list.append(cosine_sim)
 
-        batched_time = batched_end - batched_start
-        batched_times.append(batched_time)
-        batched_ppls.append(batched_ppl)
+    distance_performance_correlation = spearmanr(distances_list, ppl_diff_list)
+    cosine_performance_correlation = spearmanr(cosines_list, ppl_diff_list)
 
-        flattened_start = time.time()
-        flattened_ppl = trnr.get_perplexity_multibatch(trnr.eval_data, dag)
-        flattened_end = time.time()
-
-        flattened_time = flattened_end - flattened_start
-        flattened_times.append(flattened_time)
-        flattened_ppls.append(flattened_ppl)
-
-        print("Batched PPL: {} took {} to compute".format(batched_ppl, batched_end - batched_start))
-        print("Flattened PPL: {} took {} to compute".format(flattened_ppl, flattened_end - flattened_start))
+    results = {"cosine_similarities": cosine_similarities,
+               "l2_distances": l2_distances,
+               "validation_ppls": validation_ppls,
+               "distance_performance_correlation": distance_performance_correlation,
+               "cosine_performance_correlation": cosine_performance_correlation}
 
     with open(os.path.join(save_dir, "results.json"), "w") as fp:
         json.dump(results, fp, indent=4, sort_keys=True)

@@ -14,11 +14,6 @@ from train_scripts import hardcoded_trainer
 from train_scripts import flexible_trainer
 import utils as utils
 
-from network_construction.utils import Node
-
-from scipy.stats import spearmanr, pearsonr
-
-import collections
 import os
 from dotenv import find_dotenv, load_dotenv
 from settings import ROOT_DIR
@@ -26,7 +21,7 @@ from settings import ROOT_DIR
 from dotmap import DotMap
 import json
 
-import time
+from visualization.density_plots import density_plot
 
 logger = utils.get_logger()
 
@@ -64,16 +59,16 @@ def main(args):  # pylint:disable=redefined-outer-name
     torch.manual_seed(args.random_seed)
     load_dotenv(find_dotenv(), override=True)
 
-    perplexity_correlation_dir = os.environ.get("PERPLEXITY_SPEED_DIR")
+    perplexity_correlation_dir = os.environ.get("PERPLEXITY_DISTRIBUTION_PLOTS_DIR")
     model_dir = os.path.basename(args.model_dir)
     save_dir = os.path.join(ROOT_DIR, perplexity_correlation_dir, model_dir)
+    file_path = os.path.join(save_dir, "density.png")
 
     train_args = utils.load_args(args.model_dir)
     train_args = DotMap(train_args)
     original_mode = train_args.mode
     train_args.mode = "derive"
     train_args.load_path = args.load_path
-    train_args.test_batch_size = 1
     utils.makedirs(save_dir)
 
     if args.num_gpu > 0:
@@ -97,38 +92,15 @@ def main(args):  # pylint:disable=redefined-outer-name
         trnr = flexible_trainer.FlexibleTrainer(train_args, dataset)
 
     dags = trnr.derive_many(100)
-
-    batched_times = []
-    batched_ppls = []
-
-    flattened_times = []
-    flattened_ppls = []
-
-    results = {"batched": {"times": batched_times, "ppls": batched_ppls}, "flattened": {"times": flattened_times,
-                                                                                        "ppls": flattened_ppls}}
+    ppls = []
 
     for i, dag in enumerate(dags):
-        batched_start = time.time()
-        batched_ppl = trnr.get_perplexity_multibatch(trnr.valid_data, dag)
-        batched_end = time.time()
+        print(i)
+        ppl = trnr.get_perplexity_multibatch(trnr.eval_data, dag)
 
-        batched_time = batched_end - batched_start
-        batched_times.append(batched_time)
-        batched_ppls.append(batched_ppl)
+        ppls.append(ppl)
 
-        flattened_start = time.time()
-        flattened_ppl = trnr.get_perplexity_multibatch(trnr.eval_data, dag)
-        flattened_end = time.time()
-
-        flattened_time = flattened_end - flattened_start
-        flattened_times.append(flattened_time)
-        flattened_ppls.append(flattened_ppl)
-
-        print("Batched PPL: {} took {} to compute".format(batched_ppl, batched_end - batched_start))
-        print("Flattened PPL: {} took {} to compute".format(flattened_ppl, flattened_end - flattened_start))
-
-    with open(os.path.join(save_dir, "results.json"), "w") as fp:
-        json.dump(results, fp, indent=4, sort_keys=True)
+    density_plot(ppls, train_args.train_type.capitalize(), "Valiation PPL", file_path)
 
     with open(os.path.join(save_dir, "params.json"), "w") as fp:
         json.dump(train_args.toDict(), fp, indent=4, sort_keys=True)

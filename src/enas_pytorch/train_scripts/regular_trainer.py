@@ -587,7 +587,7 @@ class Trainer(object):
                 hidden = self.shared.init_hidden(self.args.batch_size)
 
     def train_scratch(self):
-        dags = [self.derive()]
+        best_dag = self.derive()
 
         # When load_model() is called, self.epoch and self.shared_step are set to the values from the file name that
         # was loaded. We reset them here since we are starting a totally different training procedure for the shared
@@ -617,6 +617,8 @@ class Trainer(object):
             for _ in range(self.train_data.size(0) - 1 - 1):
                 if step > max_step:
                     break
+
+                dags = self.controller.sample(self.args.shared_num_sample)
 
                 inputs, targets = self.get_batch(self.train_data,
                                                  train_idx,
@@ -658,7 +660,7 @@ class Trainer(object):
                 train_idx += self.max_length
 
             eval_ppl = self.evaluate(self.eval_data,
-                                     dags[0],
+                                     best_dag,
                                      'val_best',
                                      max_num=None)  # * 100
 
@@ -761,7 +763,7 @@ class Trainer(object):
 
         return best_dag
 
-    def derive_many(self, sample_num=None):
+    def derive_many(self, sample_num=None, return_hidden=False):
         """
         Just samples a bunch of architectures and returns them along with the hidden state of the controller.
         To be used by analysis of hidden states, not for model evaluation.
@@ -775,11 +777,9 @@ class Trainer(object):
         if sample_num is None:
             sample_num = self.args.derive_num_sample
 
-        dags, _, entropies, hidden_sampled = self.controller.sample(sample_num,
-                                                                    with_details=True,
-                                                                    return_hidden=True)
-
-        return dags, hidden_sampled
+        return self.controller.sample(sample_num,
+                                      with_details=False,
+                                      return_hidden=return_hidden)
 
     def test(self, sample_num=None, valid_idx=0):
         # Sample a bunch of dags and get the one that performs best on the validation set
