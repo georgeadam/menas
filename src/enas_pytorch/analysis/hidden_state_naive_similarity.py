@@ -23,6 +23,8 @@ from settings import ROOT_DIR
 from dotmap import DotMap
 import json
 
+import networkx as nx
+
 logger = utils.get_logger()
 
 
@@ -50,6 +52,45 @@ def cosine_similarity(x, y):
     denominator = torch.norm(x, 2) * torch.norm(y, 2)
 
     return numerator / denominator
+
+
+def edit_distance(dag1, dag2):
+    graph1 = nx.DiGraph()
+    graph2 = nx.DiGraph()
+
+    if -1 in dag1:
+        graph1.add_node(-1, name='x[t]')
+        graph2.add_node(-1, name='x[t]')
+
+    if -2 in dag1:
+        graph1.add_node(-2, name='h[t-1]')
+        graph2.add_node(-2, name='h[t-1]')
+
+    graph1.add_node(0, name=dag1[-1][0].name)
+    graph2.add_node(0, name=dag2[-1][0].name)
+
+    checked_ids = [-2, -1, 0]
+
+    for idx in dag1:
+        for node in dag1[idx]:
+            if node.id not in checked_ids:
+                graph1.add_node(node.id, name=node.name)
+                checked_ids.append(node.id)
+            graph1.add_edge(idx, node.id)
+
+    checked_ids = [-2, -1, 0]
+
+    for idx in dag2:
+        for node in dag2[idx]:
+            if node.id not in checked_ids:
+                graph2.add_node(node.id, name=node.name)
+                checked_ids.append(node.id)
+            graph2.add_edge(idx, node.id)
+
+    for i, v in enumerate(nx.optimize_graph_edit_distance(graph1, graph2)):
+        edit_distance = v
+
+        return edit_distance
 
 
 def main(args):  # pylint:disable=redefined-outer-name
@@ -94,11 +135,13 @@ def main(args):  # pylint:disable=redefined-outer-name
     common = {}
     cosine_similarities = {}
     l2_distances = {}
+    edit_distances = {}
 
     connections_list = []
     activations_list = []
     distances_list = []
     cosines_list = []
+    edit_distances_list = []
 
     for i in range(len(dags)):
         for j in range(i + 1, len(dags)):
@@ -109,23 +152,32 @@ def main(args):  # pylint:disable=redefined-outer-name
                 cosine_similarities["{}_{}".format(i, j)] = cosine_sim
                 l2_distance = torch.norm(hiddens[i] - hiddens[j], 2).item()
                 l2_distances["{}_{}".format(i, j)] = l2_distance
+                ed = edit_distance(dags[i], dags[j])
+                edit_distances["{}_{}".format(i, j)] = ed
+
 
                 connections_list.append(common_connections)
                 activations_list.append(common_activations)
                 distances_list.append(l2_distance)
                 cosines_list.append(cosine_sim)
+                edit_distances_list.append(ed)
 
     connection_cor_l2 = spearmanr(connections_list, distances_list)
     activation_cor_l2 = spearmanr(activations_list, distances_list)
+    ed_cor_l2 = spearmanr(edit_distances_list, distances_list)
 
     connection_cor_cosine = spearmanr(connections_list, cosines_list)
     activation_cor_cosine = spearmanr(activations_list, cosines_list)
+    ed_cor_cosine = spearmanr(edit_distances_list, cosines_list)
 
     results = {"connections_l2_distance_spearman": connection_cor_l2,
                "activations_l2_distance_spearman": activation_cor_l2, "common_attributes": common,
                "cosine_similarities": cosine_similarities,
                "l2_distances": l2_distances, "connections_cosine_spearman": connection_cor_cosine,
-               "activations_cosine_spearman": activation_cor_cosine}
+               "activations_cosine_spearman": activation_cor_cosine,
+               "edit_distance_l2_distance_spearman": ed_cor_l2,
+               "edit_distance_cosine_spearman": ed_cor_cosine,
+               "edit_distances": edit_distances}
 
     with open(os.path.join(save_dir, "results.json"), "w") as fp:
         json.dump(results, fp, indent=4, sort_keys=True)
