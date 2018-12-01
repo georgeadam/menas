@@ -95,7 +95,7 @@ def main(args):  # pylint:disable=redefined-outer-name
         trnr = flexible_trainer.FlexibleTrainer(train_args, dataset)
 
     results = {"spearmanr": {}, "pearsonr": {}}
-    dags, hiddens = trnr.derive_many(100)
+    dags = trnr.derive_many(100)
     eval_ppls = []
     derive_ppls = []
     full_ppls = []

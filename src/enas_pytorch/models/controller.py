@@ -92,7 +92,8 @@ class Controller(torch.nn.Module):
 
         return logits, (hx, cx)
 
-    def sample(self, batch_size=1, with_details=False, save_dir=None, return_hidden=False):
+    def sample(self, batch_size=1, with_details=False, save_dir=None, return_hidden=False,
+               random_hidden_state=False):
         """Samples a set of `args.num_blocks` many computational nodes from the
         controller, where each node is made up of an activation function, and
         each node except the last also includes a previous node.
@@ -104,10 +105,21 @@ class Controller(torch.nn.Module):
         inputs = self.static_inputs[batch_size]
         hidden = self.static_init_hidden[batch_size]
 
+        if random_hidden_state:
+            inputs = torch.randn(inputs.shape).cuda() / 3.0
+            temp1 = torch.randn(hidden[0].shape) / 3.0
+            temp2 = torch.randn(hidden[1].shape) / 3.0
+
+            if self.args.cuda:
+                temp1, temp2 = temp1.cuda(), temp2.cuda()
+
+            hidden = (temp1, temp2)
+
         activations = []
         entropies = []
         log_probs = []
         prev_nodes = []
+        probabilities = []
         # NOTE(brendan): The RNN controller alternately outputs an activation,
         # followed by a previous node, for each block except the last one,
         # which only gets an activation function. The last node is the output
@@ -142,6 +154,9 @@ class Controller(torch.nn.Module):
             elif mode == 1:
                 prev_nodes.append(action[:, 0])
 
+            if return_hidden:
+                probabilities.append(torch.max(probs, 1)[0].view(-1, 1))
+
         prev_nodes = torch.stack(prev_nodes).transpose(0, 1)
         activations = torch.stack(activations).transpose(0, 1)
 
@@ -157,12 +172,13 @@ class Controller(torch.nn.Module):
 
         if with_details:
             if return_hidden:
-                return dags, torch.cat(log_probs), torch.cat(entropies), hidden[0]
+                return dags, torch.cat(log_probs), torch.cat(entropies), hidden[0], \
+                       torch.cat(probabilities, dim=1).detach()
             else:
                 return dags, torch.cat(log_probs), torch.cat(entropies)
 
         if return_hidden:
-            return dags, hidden[0]
+            return dags, hidden[0], torch.cat(probabilities, dim=1).detach()
         else:
             return dags
 

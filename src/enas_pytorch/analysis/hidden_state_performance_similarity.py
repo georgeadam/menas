@@ -71,7 +71,7 @@ def main(args):  # pylint:disable=redefined-outer-name
     elif train_args.train_type == "flexible":
         trnr = flexible_trainer.FlexibleTrainer(train_args, dataset)
 
-    dags, hiddens = trnr.derive_many(100)
+    dags, hiddens, probabilities = trnr.derive_many(100, return_hidden=True)
     cosine_similarities = {}
     l2_distances = {}
     validation_ppls = {}
