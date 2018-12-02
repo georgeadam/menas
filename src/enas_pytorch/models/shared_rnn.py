@@ -203,7 +203,7 @@ class RNN(models.shared_base.SharedModel):
         time_steps = inputs.size(0)
         batch_size = inputs.size(1)
 
-        is_train = is_train and self.args.mode in ['train']
+        is_train = is_train and self.args.mode in ['train', 'train_scratch']
 
         self.w_hh = _get_dropped_weights(self.w_hh_raw,
                                          self.args.shared_wdrop,
