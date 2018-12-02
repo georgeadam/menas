@@ -258,6 +258,7 @@ class Trainer(object):
         # load_model() is called first to load the best saved params from file as the ones that are
         # currently in memory could be very overfit.
         self.load_model()
+        self.determine_dag_sampled_during_training()
         self.test()
         self.indicate_training_complete()
 
@@ -588,7 +589,12 @@ class Trainer(object):
 
     def train_scratch(self):
         best_dag = self.derive()
-
+        dags = [best_dag]
+        best_ppl = self.evaluate(self.eval_data,
+                                 best_dag,
+                                 'temp',
+                                 max_num=None,
+                                 tb=False)  # * 100
         # When load_model() is called, self.epoch and self.shared_step are set to the values from the file name that
         # was loaded. We reset them here since we are starting a totally different training procedure for the shared
         # parameters.
@@ -618,7 +624,7 @@ class Trainer(object):
                 if step > max_step:
                     break
 
-                dags = self.controller.sample(self.args.shared_num_sample)
+                # dags = self.controller.sample(self.args.shared_num_sample)
 
                 inputs, targets = self.get_batch(self.train_data,
                                                  train_idx,
@@ -669,6 +675,9 @@ class Trainer(object):
                 self.save_model(self.scratch_shared_path, None)
 
             self.epoch += 1
+
+            if self.epoch >= self.args.shared_decay_after:
+                utils.update_lr(self.shared_optim, self.shared_lr)
 
         # Load the best shared model parameters from file. This is done since it is really easy to overfit when
         # training in the above loop, so we don't want to use overfitted parameters when evaluating performance on
@@ -724,7 +733,8 @@ class Trainer(object):
 
             self.tb.scalar_summary('{}/{}_loss'.format(param_group_name, name), val_loss, self.epoch)
             self.tb.scalar_summary('{}/{}_ppl'.format(param_group_name, name), ppl, self.epoch)
-            logger.info(f'val eval | loss: {val_loss:8.2f} | ppl: {ppl:8.2f}')
+
+        logger.info(f'val eval | loss: {val_loss:8.2f} | ppl: {ppl:8.2f}')
 
         return ppl
 
@@ -793,8 +803,30 @@ class Trainer(object):
             self.tb.scalar_summary(f'eval/final_val_ppl', validation_perplexity, self.epoch)
             self.tb.scalar_summary(f'eval/final_test_ppl', test_perplexity, self.epoch)
             print("Averaged perplexity of best DAG on validation set is: {}".format(validation_perplexity))
-            print("Averaged perplexity of best DAG on test set is: {}".format(test_perplexity))
+            logger.info("Averaged perplexity of best DAG on test set is: {}".format(test_perplexity))
 
+    def determine_dag_sampled_during_training(self):
+        with _get_no_grad_ctx_mgr():
+            dags, _, entropies, hashes = self.controller.sample(self.args.derive_num_sample,
+                                                                with_details=True,
+                                                                return_hashes=True)
+
+            best_ppl = float("inf")
+            best_hash = 0
+            for i, dag in enumerate(dags):
+                ppl = self.get_perplexity_multibatch(self.eval_data, dag, self.args.batch_size, 1)
+
+                if ppl < best_ppl:
+                    best_ppl = ppl
+                    best_hash = hashes[i]
+
+            try:
+                index = self.controller.hashes.index(best_hash)
+            except ValueError:
+                index = -1
+
+            self.tb.scalar_summary(f'dag_index/index', index, 0)
+            print("Index of best dag in DAGs seen during controller optimization is: {}".format(index))
 
     @property
     def shared_lr(self):

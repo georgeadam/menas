@@ -6,6 +6,7 @@ import torch
 import torch.nn.functional as F
 
 import utils
+import math
 
 from network_construction.utils import _construct_dags
 
@@ -55,6 +56,9 @@ class Controller(torch.nn.Module):
 
         self.reset_parameters()
         self.static_init_hidden = utils.keydefaultdict(self.init_hidden)
+        self.most_tokens = max(len(args.shared_rnn_activations), args.num_blocks)
+        self.primes = self.generate_primes()
+        self.hashes = []
 
         def _get_default_hidden(key):
             return utils.get_variable(
@@ -93,7 +97,7 @@ class Controller(torch.nn.Module):
         return logits, (hx, cx)
 
     def sample(self, batch_size=1, with_details=False, save_dir=None, return_hidden=False,
-               random_hidden_state=False):
+               random_hidden_state=False, return_hashes=False):
         """Samples a set of `args.num_blocks` many computational nodes from the
         controller, where each node is made up of an activation function, and
         each node except the last also includes a previous node.
@@ -160,6 +164,10 @@ class Controller(torch.nn.Module):
         prev_nodes = torch.stack(prev_nodes).transpose(0, 1)
         activations = torch.stack(activations).transpose(0, 1)
 
+        if with_details:
+            hashes = self.hash_dags(prev_nodes, activations)
+            self.hashes += hashes
+
         dags = _construct_dags(prev_nodes,
                                activations,
                                self.func_names,
@@ -174,6 +182,8 @@ class Controller(torch.nn.Module):
             if return_hidden:
                 return dags, torch.cat(log_probs), torch.cat(entropies), hidden[0], \
                        torch.cat(probabilities, dim=1).detach()
+            elif return_hashes:
+                return dags, torch.cat(log_probs), torch.cat(entropies), hashes
             else:
                 return dags, torch.cat(log_probs), torch.cat(entropies)
 
@@ -186,3 +196,53 @@ class Controller(torch.nn.Module):
         zeros = torch.zeros(batch_size, self.args.controller_hid)
         return (utils.get_variable(zeros, self.args.cuda, requires_grad=False),
                 utils.get_variable(zeros.clone(), self.args.cuda, requires_grad=False))
+
+    def hash_dags(self, prev_nodes, activations):
+        hashes = []
+
+        for i in range(len(prev_nodes)):
+            pn = prev_nodes[i]
+            act = activations[i]
+            hash = 1
+            block_num = 0
+
+            for j in range(len(pn)):
+                node = pn[j]
+                hash *= self.primes[node + block_num * self.most_tokens]
+                block_num += 1
+
+                activation = act[j]
+                hash *= self.primes[activation + block_num * self.most_tokens]
+                block_num += 1
+
+            hashes.append(hash)
+
+        return hashes
+
+    def generate_primes(self):
+        num_primes = 2 * (self.most_tokens ** 2) + self.most_tokens
+
+        primes = []
+        j = 2
+
+        for i in range(num_primes):
+            if len(primes) == num_primes:
+                break
+
+            while True:
+                if self.is_prime(j):
+                    primes.append(j)
+                    j += 1
+
+                    break
+
+                j += 1
+
+        return primes
+
+    def is_prime(self, n):
+        for i in range(2, math.ceil(math.sqrt(n)) + 1):
+            if n % i == 0:
+                return False
+
+        return True
