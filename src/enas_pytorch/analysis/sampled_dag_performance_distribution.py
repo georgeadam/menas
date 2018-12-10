@@ -96,11 +96,11 @@ def main(args):  # pylint:disable=redefined-outer-name
 
     for i, dag in enumerate(dags):
         print(i)
-        ppl = trnr.get_perplexity_multibatch(trnr.eval_data, dag)
+        ppl = trnr.get_perplexity_multibatch(trnr.test_data, dag)
 
         ppls.append(ppl)
 
-    density_plot(ppls, train_args.train_type.capitalize(), "Valiation PPL", file_path)
+    density_plot(ppls, train_args.train_type.capitalize(), "Test PPL", file_path)
 
     with open(os.path.join(save_dir, "params.json"), "w") as fp:
         json.dump(train_args.toDict(), fp, indent=4, sort_keys=True)

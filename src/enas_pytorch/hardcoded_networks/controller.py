@@ -89,11 +89,11 @@ class HardcodedController(Controller):
 
         if with_details:
             if return_hidden:
-                return dags, torch.cat(log_probs), torch.cat(entropies), hidden[0]
+                return dags, torch.cat(log_probs), torch.cat(entropies), hidden[0], None
             else:
                 return dags, torch.cat(log_probs), torch.cat(entropies)
 
         if return_hidden:
-            return dags, hidden[0]
+            return dags, hidden[0], None
         else:
             return dags

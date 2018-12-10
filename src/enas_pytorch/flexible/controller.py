@@ -149,11 +149,11 @@ class FlexibleController(Controller):
 
         if with_details:
             if return_hidden:
-                return dags, torch.cat(list_log_probs), torch.cat(list_entropies), hidden[0]
+                return dags, torch.cat(list_log_probs), torch.cat(list_entropies), hidden[0], None
             else:
                 return dags, torch.cat(list_log_probs), torch.cat(list_entropies)
 
         if return_hidden:
-            return dags, hidden[0]
+            return dags, hidden[0], None
         else:
             return dags

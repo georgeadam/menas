@@ -13,7 +13,7 @@ import utils as utils
 
 from network_construction.utils import Node
 
-from scipy.stats import spearmanr
+from scipy.stats import spearmanr, pearsonr, linregress
 
 import collections
 import os
@@ -136,6 +136,7 @@ def main(args):  # pylint:disable=redefined-outer-name
     cosine_similarities = {}
     l2_distances = {}
     edit_distances = {}
+    results = {}
 
     connections_list = []
     activations_list = []
@@ -155,29 +156,40 @@ def main(args):  # pylint:disable=redefined-outer-name
                 ed = edit_distance(dags[i], dags[j])
                 edit_distances["{}_{}".format(i, j)] = ed
 
-
                 connections_list.append(common_connections)
                 activations_list.append(common_activations)
                 distances_list.append(l2_distance)
                 cosines_list.append(cosine_sim)
                 edit_distances_list.append(ed)
 
-    connection_cor_l2 = spearmanr(connections_list, distances_list)
-    activation_cor_l2 = spearmanr(activations_list, distances_list)
-    ed_cor_l2 = spearmanr(edit_distances_list, distances_list)
-
-    connection_cor_cosine = spearmanr(connections_list, cosines_list)
-    activation_cor_cosine = spearmanr(activations_list, cosines_list)
-    ed_cor_cosine = spearmanr(edit_distances_list, cosines_list)
-
-    results = {"connections_l2_distance_spearman": connection_cor_l2,
-               "activations_l2_distance_spearman": activation_cor_l2, "common_attributes": common,
+    results = {"common_attributes": common,
                "cosine_similarities": cosine_similarities,
-               "l2_distances": l2_distances, "connections_cosine_spearman": connection_cor_cosine,
-               "activations_cosine_spearman": activation_cor_cosine,
-               "edit_distance_l2_distance_spearman": ed_cor_l2,
-               "edit_distance_cosine_spearman": ed_cor_cosine,
+               "l2_distances": l2_distances,
                "edit_distances": edit_distances}
+
+    for cor_fn in [spearmanr, pearsonr]:
+        connection_cor_l2 = cor_fn(connections_list, distances_list)
+        activation_cor_l2 = cor_fn(activations_list, distances_list)
+        ed_cor_l2 = cor_fn(edit_distances_list, distances_list)
+
+        connection_cor_cosine = cor_fn(connections_list, cosines_list)
+        activation_cor_cosine = cor_fn(activations_list, cosines_list)
+        ed_cor_cosine = cor_fn(edit_distances_list, cosines_list)
+
+        results["connections_l2_distance_{}".format(cor_fn.__name__)] = connection_cor_l2
+        results["activations_l2_distance_{}".format(cor_fn.__name__)] = activation_cor_l2
+        results["edit_distance_l2_distance_{}".format(cor_fn.__name__)] = ed_cor_l2
+        results["connections_cosine_{}".format(cor_fn.__name__)] = connection_cor_cosine
+        results["activations_cosine_{}".format(cor_fn.__name__)] = activation_cor_cosine
+        results["edit_distance_cosine_{}".format(cor_fn.__name__)] = ed_cor_cosine
+
+    connection_lin_l2 = linregress(connections_list, distances_list)
+    activation_lin_l2 = linregress(activations_list, distances_list)
+    ed_lin_l2 = linregress(edit_distances_list, distances_list)
+
+    results["connections_l2_distance_reg"] = connection_lin_l2
+    results["activations_l2_distance_reg"] = activation_lin_l2
+    results["edit_distance_l2_distance_reg"] = ed_lin_l2
 
     with open(os.path.join(save_dir, "results.json"), "w") as fp:
         json.dump(results, fp, indent=4, sort_keys=True)
