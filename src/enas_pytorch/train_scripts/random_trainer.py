@@ -58,5 +58,6 @@ class RandomTrainer(Trainer):
                 utils.update_lr(self.shared_optim, self.shared_lr)
 
         self.load_model()
+        self.determine_dag_sampled_during_training()
         self.test()
         self.indicate_training_complete()

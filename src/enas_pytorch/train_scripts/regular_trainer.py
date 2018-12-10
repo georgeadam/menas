@@ -14,6 +14,7 @@ from torch import nn
 import torch.nn.parallel
 from torch.autograd import Variable
 
+import json
 import models
 import utils
 
@@ -588,8 +589,15 @@ class Trainer(object):
                 hidden = self.shared.init_hidden(self.args.batch_size)
 
     def train_scratch(self):
-        best_dag = self.derive()
-        dags = [best_dag]
+        if self.args.use_preset_arc:
+            preset_path = os.path.join(self.args.model_dir, "derived_architecture.json")
+
+            with open(preset_path, "r") as fp:
+                dags = [json.load(fp)]
+        else:
+            best_dag = self.derive()
+            dags = [best_dag]
+
         best_ppl = self.evaluate(self.eval_data,
                                  best_dag,
                                  'temp',
@@ -600,6 +608,20 @@ class Trainer(object):
         # parameters.
         self.epoch = 0
         self.shared_step = 0
+
+        # self.args.shared_hid = 175
+        # self.args.shared_embed = 175
+        # self.build_model()
+        #
+        # shared_optimizer = _get_optimizer(self.args.shared_optim)
+        # controller_optimizer = _get_optimizer(self.args.controller_optim)
+        #
+        # self.shared_optim = shared_optimizer(
+        #     self.shared.parameters(),
+        #     weight_decay=self.args.shared_l2_reg,
+        #     #momentum=0.99,
+        #     #nesterov=True,
+        #     lr=self.args.controller_lr)
 
         model = self.shared
         model.reset_parameters()
@@ -771,6 +793,11 @@ class Trainer(object):
             utils.draw_network(best_dag, path)
             self.tb.image_summary('derive/best', [path], self.epoch)
 
+        json_architecture_path = os.path.join(self.args.model_dir, 'derived_architecture.json')
+
+        with open(json_architecture_path, 'w') as fp:
+            json.dump(best_dag, fp, indent=4, sort_keys=True)
+
         return best_dag
 
     def derive_many(self, sample_num=None, return_hidden=False):
@@ -825,7 +852,13 @@ class Trainer(object):
             except ValueError:
                 index = -1
 
+            if index != -1:
+                counts = self.controller.hashes.count(best_hash)
+            else:
+                counts = 0
+
             self.tb.scalar_summary(f'dag_index/index', index, 0)
+            self.tb.scalar_summary(f'dag_index/counts', counts, 0)
             print("Index of best dag in DAGs seen during controller optimization is: {}".format(index))
 
     @property

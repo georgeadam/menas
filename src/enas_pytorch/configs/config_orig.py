@@ -124,6 +124,8 @@ misc_arg.add_argument('--random_seed', type=int, default=12345)
 misc_arg.add_argument('--use_tensorboard', type=str2bool, default=True)
 misc_arg.add_argument("--train_type", type=str, default="ours",
                       choices=['orig', 'ours', 'random', 'hardcoded', 'flexible'])
+misc_arg.add_argument('--use_preset_arc', type=str2bool, default=False)
+
 
 def get_args():
     args,  unparsed = parser.parse_known_args()

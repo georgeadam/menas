@@ -164,9 +164,8 @@ class Controller(torch.nn.Module):
         prev_nodes = torch.stack(prev_nodes).transpose(0, 1)
         activations = torch.stack(activations).transpose(0, 1)
 
-        if with_details:
-            hashes = self.hash_dags(prev_nodes, activations)
-            self.hashes += hashes
+        hashes = self.hash_dags(prev_nodes, activations)
+        self.hashes += hashes
 
         dags = _construct_dags(prev_nodes,
                                activations,
