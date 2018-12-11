@@ -10,8 +10,10 @@
 #SBATCH --output=slurm_%j.out
 
 export LD_LIBRARY_PATH=/pkgs/cuda-9.2/lib64:$LD_LIBRARY_PATH
-export PATH=/pkgs/anaconda3/bin:$PATH
+#export PATH=/pkgs/anaconda3/bin:$PATH
+#
 
-source activate /u/relu/tfenv
+source activate py36-darts
 
-python mysimplepython.py
+cd rnn
+python train.py
