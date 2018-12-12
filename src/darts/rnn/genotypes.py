@@ -9,10 +9,8 @@ PRIMITIVES = [
     'sigmoid',
     'identity'
 ]
-original_length = 8
-enas_length = 10  # Can I use 128 batch size with this?
-STEPS = original_length #8
-CONCAT = STEPS #8
+STEPS = 8
+CONCAT = 8
 
 ENAS = Genotype(
     recurrent = [
@@ -33,9 +31,6 @@ ENAS = Genotype(
 
 DARTS_V1 = Genotype(recurrent=[('relu', 0), ('relu', 1), ('tanh', 2), ('relu', 3), ('relu', 4), ('identity', 1), ('relu', 5), ('relu', 1)], concat=range(1, 9))
 DARTS_V2 = Genotype(recurrent=[('sigmoid', 0), ('relu', 1), ('relu', 1), ('identity', 1), ('tanh', 2), ('sigmoid', 5), ('tanh', 3), ('relu', 5)], concat=range(1, 9))
-DARTS_V3 = Genotype(recurrent=[('identity', 0), ('identity', 1), ('identity', 2), ('identity', 2), ('identity', 3), ('identity', 2), ('identity', 4), ('identity', 2)], concat=range(1, 9))
-#Genotype(recurrent=[('relu', 0), ('identity', 1), ('identity', 2), ('identity', 2), ('identity', 2), ('identity', 2), ('identity', 2), ('identity', 4)], concat=range(1, 9))
-#Genotype(recurrent=[('identity', 0), ('identity', 1), ('identity', 2), ('identity', 2), ('identity', 3), ('identity', 2), ('identity', 4), ('identity', 2)], concat=range(1, 9))
-#Genotype(recurrent=[('relu', 0), ('identity', 1), ('identity', 2), ('identity', 3), ('identity', 3), ('identity', 3), ('identity', 5), ('identity', 4)], concat=range(1, 9))
 
-DARTS = ENAS  #DARTS_V3#2
+DARTS = DARTS_V2
+

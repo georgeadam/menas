@@ -17,10 +17,6 @@ import model_search as model
 
 from utils import batchify, get_batch, repackage_hidden, create_exp_dir, save_checkpoint
 
-import math
-import torch
-from torch.optim import Optimizer
-
 import PIL
 import scipy.misc
 from io import BytesIO
@@ -52,31 +48,21 @@ class TensorBoard(object):
         self.summary_writer.add_summary(summary, global_step=step)
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank/WikiText2 Language Model')
-
-parser.add_argument('--diff_unrolled', action='store_true', default=False,
-                    help='If we should differentiate through the unrolled model')
-parser.add_argument('--extrapolate_past', action='store_true', default=False,
-                    help='If we should differentiate through the unrolled model')
-
-
-
 parser.add_argument('--data', type=str, default='../data/penn/',
                     help='location of the data corpus')
-size_default = 300  # 300
-batch_size_default = 64  # + 128 + 32  # 256
-parser.add_argument('--emsize', type=int, default=size_default,  # 300,
+parser.add_argument('--emsize', type=int, default=300,
                     help='size of word embeddings')
-parser.add_argument('--nhid', type=int, default=size_default,  # 300,
+parser.add_argument('--nhid', type=int, default=300,
                     help='number of hidden units per layer')
-parser.add_argument('--nhidlast', type=int, default=size_default,  # 300,
+parser.add_argument('--nhidlast', type=int, default=300,
                     help='number of hidden units for the last rnn layer')
 parser.add_argument('--lr', type=float, default=20,
                     help='initial learning rate')
 parser.add_argument('--clip', type=float, default=0.25,
                     help='gradient clipping')
-parser.add_argument('--epochs', type=int, default=15000,
+parser.add_argument('--epochs', type=int, default=50,
                     help='upper epoch limit')
-parser.add_argument('--batch_size', type=int, metavar='N', default=batch_size_default,  # 256,
+parser.add_argument('--batch_size', type=int, default=256, metavar='N',
                     help='batch size')
 parser.add_argument('--bptt', type=int, default=35,
                     help='sequence length')
@@ -96,7 +82,7 @@ parser.add_argument('--nonmono', type=int, default=5,
                     help='random seed')
 parser.add_argument('--cuda', action='store_false',
                     help='use CUDA')
-parser.add_argument('--log-interval', type=int, default=5, metavar='N',
+parser.add_argument('--log-interval', type=int, default=50, metavar='N',
                     help='report interval')
 parser.add_argument('--save', type=str,  default='EXP',
                     help='path to save the final model')
@@ -122,13 +108,16 @@ parser.add_argument('--arch_wdecay', type=float, default=1e-3,
                     help='weight decay for the architecture encoding alpha')
 parser.add_argument('--arch_lr', type=float, default=3e-3,
                     help='learning rate for the architecture encoding alpha')
+
+
+parser.add_argument('--diff_unrolled', action='store_true', default=False,
+                    help='If we should differentiate through the unrolled model')
+
 args = parser.parse_args()
 
-
-
-extrapolate_text = 'Extrapolate'
+'''extrapolate_text = 'Extrapolate'
 if args.extrapolate_past:
-    extrapolate_text = 'PastExtrapolate'
+    extrapolate_text = 'PastExtrapolate'''''
 
 diff_unrolled_text = 'NoDiffUnroll'
 if args.diff_unrolled:
@@ -141,7 +130,7 @@ if args.unrolled:
 else:  # Can't diff through unrolling if no unrolling
     diff_unrolled_text = ''
     extrapolate_text = ''
-args.save += '-' + unroll_text + '-' + diff_unrolled_text + '-' + extrapolate_text
+args.save += '-' + unroll_text + '-' + diff_unrolled_text #+ '-' + extrapolate_text
 
 if args.nhidlast < 0:
     args.nhidlast = args.emsize
@@ -230,9 +219,9 @@ def evaluate(data_source, batch_size=10):
         hidden = repackage_hidden(hidden)
     return total_loss[0] / len(data_source)
 
-
 shared_step = 0
 def train():
+    print("Beginning training!")
     assert args.batch_size % args.small_batch_size == 0, 'batch_size must be divisible by small_batch_size'
 
     # Turn on training mode which enables dropout.
@@ -242,7 +231,6 @@ def train():
     hidden = [model.init_hidden(args.small_batch_size) for _ in range(args.batch_size // args.small_batch_size)]
     hidden_valid = [model.init_hidden(args.small_batch_size) for _ in range(args.batch_size // args.small_batch_size)]
     batch, i = 0, 0
-
     while i < train_data.size(0) - 1 - 1:
         bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
         # Prevent excessively small or negative sequence lengths
@@ -309,12 +297,11 @@ def train():
         optimizer.param_groups[0]['lr'] = lr2
         if batch % args.log_interval == 0 and batch > 0:
             logging.info(parallel_model.genotype())
-            print(parallel_model.genotype())
-            #print(F.softmax(parallel_model.weights, dim=-1))
-            # TODO: I Commented out this print above.
+            print(F.softmax(parallel_model.weights, dim=-1))
             cur_loss = total_loss[0] / args.log_interval
             elapsed = time.time() - start_time
-            log_str = '| epoch {:3d} | {:5d}/{:5d} batches | lr {:02.2f} | ms/batch {:5.2f} | loss {:5.2f} | ppl {:8.2f}'.format(
+            log_str = '| epoch {:3d} | {:5d}/{:5d} batches | lr {:02.2f} | ms/batch {:5.2f} | ' \
+                    'loss {:5.2f} | ppl {:8.2f}'.format(
                 epoch, batch, len(train_data) // args.bptt, optimizer.param_groups[0]['lr'],
                 elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss))
             logging.info(log_str)
@@ -338,10 +325,7 @@ if args.continue_train:
         optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, weight_decay=args.wdecay)
     optimizer.load_state_dict(optimizer_state)
 else:
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, weight_decay=args.wdecay) #, momentum=0.9, nesterov=True)
-    #optimizer = my_ASGD(model.parameters(), lr=args.lr, weight_decay=args.wdecay)
-    #optimizer = torch.optim.Adam(model.parameters(), lr=args.arch_lr, weight_decay=args.wdecay)
-    # TODO: I CHANGED THIS TO ASGD
+    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, weight_decay=args.wdecay)
 
 for epoch in range(1, args.epochs+1):
     epoch_start_time = time.time()
@@ -349,13 +333,13 @@ for epoch in range(1, args.epochs+1):
 
     val_loss = evaluate(val_data, eval_batch_size)
     logging.info('-' * 89)
-    log_str = '| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | valid ppl {:8.2f}'.format(epoch,
-                                     (time.time() - epoch_start_time),
+    log_str = '| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | ' \
+            'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
                                        val_loss, math.exp(val_loss))
     logging.info(log_str)
     print(log_str)
-    tb.scalar_summary(f'train/val_ppl', math.exp(val_loss), shared_step)
     logging.info('-' * 89)
+    tb.scalar_summary(f'train/val_ppl', math.exp(val_loss), shared_step)
 
     if val_loss < stored_loss:
         save_checkpoint(model, optimizer, epoch, args.save)
