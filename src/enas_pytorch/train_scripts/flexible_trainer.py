@@ -234,28 +234,56 @@ class FlexibleTrainer(Trainer):
                 baseline = rewards
             else:
                 decay = self.args.ema_baseline_decay
+                # Extending the baseline shape by padding with 0s means the values in those extended positions
+                # correspond to a different amount of time steps than values in earlier positions. I.e. if we only
+                # sample large DAGs occasionally, the baseline for the later controller actions will be less mature
+                # than that for earlier actions.
+                # Recall that the point of a baseline, in addition to variance reduction, it to increase the
+                # probability of only the best actions. Without it, assuming we have all positive rewards,
+                # all action probabilities are increased.
                 if baseline.shape[0] < rewards.shape[0]:
                     padding = np.zeros(rewards.shape[0] - baseline.shape[0])
 
                     baseline = decay * np.concatenate((baseline, padding)) + (1 - decay) * rewards
+                # Extending the rewards shape by padding with 0s means that the sampled architecture is smaller than
+                # the largest one seen thus far. Thus, we only want the earlier controller actions to have their
+                # baseline updated. Therefore, we pad not with 0s, but with what the current baseline vector is past
+                # the shape of the reward vector.
                 elif baseline.shape[0] > rewards.shape[0]:
-                    padding = np.zeros(baseline.shape[0] - rewards.shape[0])
+                    # padding = np.zeros(baseline.shape[0] - rewards.shape[0])
+                    padding = baseline[rewards.shape[0]:]
 
                     baseline = decay * baseline + (1 - decay) * np.concatenate((rewards, padding))
                 else:
                     baseline = decay * baseline + (1 - decay) * rewards
 
+            # Even though we had to use some padding tricks to update the baseline above, we never actually padded
+            # the reward or baseline, just the terms used in the baseline update. Thus, here if the shape of the
+            # baseline and reward are still off, then we have to do some padding. 
             if baseline.shape[0] < rewards.shape[0]:
+                # In this scenario, the sampled DAG is larger than any DAG seen so far -> more actions. So
+                # zero-padding makes sense.
                 padding = np.zeros(rewards.shape[0] - baseline.shape[0])
                 baseline = np.concatenate((baseline, padding))
             elif rewards.shape[0] < baseline.shape[0]:
-                padding = np.zeros(baseline.shape[0] - rewards.shape[0])
+                # In this scenario, the sampled DAG is smaller than the biggest DAG seen so for -> less actions. So
+                # zero padding does not make sense since that means that the advantage computed for the actions that
+                # weren't seen when creating this DAG would be negative, when in fact it should be 0 since they
+                # simply were not observed this episode. To make the advantage for these tail actions be 0,
+                # we pad with the baseline, rather than with 0s.
+                # padding = np.zeros(baseline.shape[0] - rewards.shape[0])
+                padding = baseline[rewards.shape[0]:]
                 rewards = np.concatenate((rewards, padding))
 
+            # Compute the advantage of the current actions over the baseline
             adv = rewards - baseline
             adv_history.extend(adv)
 
             # policy loss
+            # So the log probabilities simply correspond to the probabilities of the selected actions.
+            # I think by this point it is not possible for log_probs to be longer than adv based on the padding
+            # we did earlier with the rewards and baseline. However, it might be shorter than adv. in which case
+            # I think zero padding makes sense since we want those padded actions to have 0 effect on the loss.
             if log_probs.shape[0] < adv.shape[0]:
                 padding = torch.zeros(adv.shape[0] - log_probs.shape[0])
 
