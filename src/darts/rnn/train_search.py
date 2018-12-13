@@ -259,7 +259,7 @@ def train():
             optimizer.zero_grad()
             hidden[s_id] = repackage_hidden(hidden[s_id])
 
-            log_prob, hidden[s_id], rnn_hs, dropped_rnn_hs = parallel_model(cur_data, hidden[s_id], return_h=True)
+            log_prob, new_hidden, rnn_hs, dropped_rnn_hs = parallel_model(cur_data, hidden[s_id], return_h=True)
             raw_loss = nn.functional.nll_loss(log_prob.view(-1, log_prob.size(2)), cur_targets)
             total_loss += raw_loss.data * args.small_batch_size / args.batch_size
 
@@ -278,7 +278,10 @@ def train():
             # Starting each batch, we detach the hidden state from how it was previously produced.
             # If we didn't, the model would try backpropagating all the way to start of the dataset.
             if args.diff_unrolled:
+                torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
+                optimizer.step()
                 optimizer.zero_grad()
+
             hidden[s_id] = repackage_hidden(hidden[s_id])
             hidden_valid[s_id] = repackage_hidden(hidden_valid[s_id])
 
@@ -288,9 +291,7 @@ def train():
                     optimizer,
                     args.unrolled)
 
-            # assuming small_batch_size = batch_size so we don't accumulate gradients
-
-
+            hidden[s_id] = new_hidden  # TODO: I ADDED THIS
 
             s_id += 1
             start = end
@@ -300,8 +301,9 @@ def train():
 
         # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs.
         # TODO: I COMMENTED THIS OUT!
-        torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
-        optimizer.step()
+        if not args.diff_unrolled:
+            torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
+            optimizer.step()
 
         global shared_step
         shared_step += 1
