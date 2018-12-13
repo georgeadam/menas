@@ -33,9 +33,16 @@ class Architect(object):
   def _compute_unrolled_model(self, hidden, input, target, eta):
     loss, hidden_next = self.model._loss(hidden, input, target)
     theta = _concat(self.model.parameters()).data
-    grads = torch.autograd.grad(loss, self.model.parameters())
-    clip_coef = _clip(grads, self.network_clip)
-    dtheta = _concat(grads).data + self.network_weight_decay*theta
+    if self.diff_through_unrolled:
+      grads = torch.autograd.grad(loss, self.model.parameters())
+      clip_coef = _clip(grads, self.network_clip)
+      dtheta = _concat(grads).data + self.network_weight_decay*theta
+    else:
+      grads = [v.grad for v in self.model.parameters()]
+      clip_coef = _clip(grads, self.network_clip)
+      dtheta = _concat(grads).data + self.network_weight_decay * theta
+
+    # print(grads)
     unrolled_model = self._construct_model_from_theta(theta.sub(eta, dtheta))
     return unrolled_model, clip_coef
 
