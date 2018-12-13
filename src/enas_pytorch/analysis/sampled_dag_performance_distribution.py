@@ -91,7 +91,7 @@ def main(args):  # pylint:disable=redefined-outer-name
     elif train_args.train_type == "flexible":
         trnr = flexible_trainer.FlexibleTrainer(train_args, dataset)
 
-    dags = trnr.derive_many(100)
+    dags = trnr.derive_many(1000)
     ppls = []
 
     for i, dag in enumerate(dags):

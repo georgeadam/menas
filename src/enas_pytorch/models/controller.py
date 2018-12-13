@@ -110,9 +110,9 @@ class Controller(torch.nn.Module):
         hidden = self.static_init_hidden[batch_size]
 
         if random_hidden_state:
-            inputs = torch.randn(inputs.shape).cuda() / 3.0
-            temp1 = torch.randn(hidden[0].shape) / 3.0
-            temp2 = torch.randn(hidden[1].shape) / 3.0
+            inputs = torch.randn(inputs.shape).cuda()
+            temp1 = torch.randn(hidden[0].shape)
+            temp2 = torch.randn(hidden[1].shape)
 
             if self.args.cuda:
                 temp1, temp2 = temp1.cuda(), temp2.cuda()

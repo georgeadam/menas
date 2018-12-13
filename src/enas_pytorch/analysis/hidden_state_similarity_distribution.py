@@ -94,9 +94,6 @@ def main(args):  # pylint:disable=redefined-outer-name
     model_dir = os.path.basename(args.model_dir)
     save_dir = os.path.join(ROOT_DIR, hidden_state_analysis_dir, model_dir)
     distance_file_path = os.path.join(save_dir, "distance_density.png")
-    probability_density_file_path = os.path.join(save_dir, "probability_density.png")
-    probability_lineplot_file_path = os.path.join(save_dir, "probability_lineplot.png")
-
 
     train_args = utils.load_args(args.model_dir)
     train_args = DotMap(train_args)
@@ -144,9 +141,6 @@ def main(args):  # pylint:disable=redefined-outer-name
                 cosines_list.append(cosine_sim)
 
     density_plot(distances_list, train_args.train_type.capitalize(), "L2 Distances", distance_file_path)
-    density_plot(probabilities.view(-1), train_args.train_type.capitalize(), "Probabilities", probability_density_file_path)
-    line_plot(torch.arange(probabilities.shape[1]).repeat(probabilities.shape[0], 1), probabilities,
-              train_args.train_type.capitalize(), "Time Step", "Probability", probability_lineplot_file_path)
 
     networks_dir = os.path.join(save_dir, "networks")
     utils.makedirs(networks_dir)
