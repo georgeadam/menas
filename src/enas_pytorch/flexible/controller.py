@@ -18,7 +18,7 @@ class FlexibleController(Controller):
         if self.args.network_type == 'rnn':
             # NOTE(brendan): `num_tokens` here is just the activation function
             # for every even step,
-            self.num_tokens = [args.num_blocks, len(args.shared_rnn_activations)]
+            self.num_tokens = [args.num_blocks - 3, len(args.shared_rnn_activations)]
             for idx in range(self.args.num_blocks):
                 self.num_tokens += [idx + 1,
                                     len(args.shared_rnn_activations)]
@@ -69,9 +69,10 @@ class FlexibleController(Controller):
         logits, hidden = self.forward(inputs, hidden, 0, is_embed=True)
         probs = F.softmax(logits, dim=-1)
         num_blocks = probs.multinomial(num_samples=1).data
-        num_blocks[num_blocks < 3] = 3
+        num_blocks = num_blocks + 3
+        # num_blocks[num_blocks < 3] = 3
         list_num_blocks = num_blocks.tolist()
-        list_num_blocks = set([temp[0] for temp in list_num_blocks if temp[0] > 2])
+        list_num_blocks = set([temp[0] for temp in list_num_blocks])
         activations = {key: [] for key in list_num_blocks}
         entropies = {key: [] for key in list_num_blocks}
         log_probs = {key: [] for key in list_num_blocks}
