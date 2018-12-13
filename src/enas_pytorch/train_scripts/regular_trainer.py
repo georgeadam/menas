@@ -413,6 +413,10 @@ class Trainer(object):
         else:
             R = self.args.reward_c / valid_ppl
 
+        # Interesting how R is just a scalar, and that the entropies are the only thing quantities which are distinct
+        # at the different time steps (decisions) that the controller makes. It brings up the question if when we the
+        # controller creates an architecture, should each individual choice be considered as an action, or should the
+        # generated architecture as a whole be considered as an action?
         if self.args.entropy_mode == 'reward':
             rewards = R + self.args.entropy_coeff * entropies
         elif self.args.entropy_mode == 'regularizer':
