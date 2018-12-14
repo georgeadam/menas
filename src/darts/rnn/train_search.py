@@ -109,15 +109,15 @@ parser.add_argument('--arch_wdecay', type=float, default=1e-3,
 parser.add_argument('--arch_lr', type=float, default=3e-3,
                     help='learning rate for the architecture encoding alpha')
 
-
 parser.add_argument('--diff_unrolled', action='store_true', default=False,
                     help='If we should differentiate through the unrolled model')
 
 args = parser.parse_args()
 
-'''extrapolate_text = 'Extrapolate'
-if args.extrapolate_past:
-    extrapolate_text = 'PastExtrapolate'''''
+if args.nhidlast < 0:
+    args.nhidlast = args.emsize
+if args.small_batch_size < 0:
+    args.small_batch_size = args.batch_size
 
 diff_unrolled_text = 'NoDiffUnroll'
 if args.diff_unrolled:
@@ -130,18 +130,11 @@ if args.unrolled:
 else:  # Can't diff through unrolling if no unrolling
     diff_unrolled_text = ''
     extrapolate_text = ''
-args.save += '-' + unroll_text + '-' + diff_unrolled_text #+ '-' + extrapolate_text
-
-if args.nhidlast < 0:
-    args.nhidlast = args.emsize
-if args.small_batch_size < 0:
-    args.small_batch_size = args.batch_size
+args.save += '-' + unroll_text + '-' + diff_unrolled_text  # + '-' + extrapolate_text
 
 if not args.continue_train:
     args.save = 'search-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S"))
     create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
-
-#tb = TensorBoard(args.save.split('/')[-1])
 
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
@@ -223,7 +216,6 @@ def evaluate(data_source, batch_size=10):
 
 shared_step = 0
 def train():
-    print("Beginning training!")
     assert args.batch_size % args.small_batch_size == 0, 'batch_size must be divisible by small_batch_size'
 
     # Turn on training mode which enables dropout.
@@ -255,33 +247,8 @@ def train():
             cur_data, cur_targets = data[:, start: end], targets[:, start: end].contiguous().view(-1)
             cur_data_valid, cur_targets_valid = data_valid[:, start: end], targets_valid[:, start: end].contiguous().view(-1)
 
-            # TODO: MOVED THIS!
-            optimizer.zero_grad()
-            hidden[s_id] = repackage_hidden(hidden[s_id])
-
-            log_prob, new_hidden, rnn_hs, dropped_rnn_hs = parallel_model(cur_data, hidden[s_id], return_h=True)
-            raw_loss = nn.functional.nll_loss(log_prob.view(-1, log_prob.size(2)), cur_targets)
-            total_loss += raw_loss.data * args.small_batch_size / args.batch_size
-
-            # TODO: REMOVED EVERYTHING WITH LOSS
-            loss = raw_loss
-            # Activiation Regularization
-            if args.alpha > 0:
-                loss = loss + sum(args.alpha * dropped_rnn_h.pow(2).mean() for dropped_rnn_h in dropped_rnn_hs[-1:])
-            # Temporal Activation Regularization (slowness)
-            loss = loss + sum(args.beta * (rnn_h[1:] - rnn_h[:-1]).pow(2).mean() for rnn_h in rnn_hs[-1:])
-            loss *= args.small_batch_size / args.batch_size
-            loss.backward()
-
-            # TODO: MOVED THIS
-
             # Starting each batch, we detach the hidden state from how it was previously produced.
             # If we didn't, the model would try backpropagating all the way to start of the dataset.
-            if args.diff_unrolled:
-                torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
-                optimizer.step()
-                optimizer.zero_grad()
-
             hidden[s_id] = repackage_hidden(hidden[s_id])
             hidden_valid[s_id] = repackage_hidden(hidden_valid[s_id])
 
@@ -291,7 +258,22 @@ def train():
                     optimizer,
                     args.unrolled)
 
-            hidden[s_id] = new_hidden  # TODO: I ADDED THIS
+            # assuming small_batch_size = batch_size so we don't accumulate gradients
+            optimizer.zero_grad()
+            hidden[s_id] = repackage_hidden(hidden[s_id])
+
+            log_prob, hidden[s_id], rnn_hs, dropped_rnn_hs = parallel_model(cur_data, hidden[s_id], return_h=True)
+            raw_loss = nn.functional.nll_loss(log_prob.view(-1, log_prob.size(2)), cur_targets)
+
+            loss = raw_loss
+            # Activiation Regularization
+            if args.alpha > 0:
+              loss = loss + sum(args.alpha * dropped_rnn_h.pow(2).mean() for dropped_rnn_h in dropped_rnn_hs[-1:])
+            # Temporal Activation Regularization (slowness)
+            loss = loss + sum(args.beta * (rnn_h[1:] - rnn_h[:-1]).pow(2).mean() for rnn_h in rnn_hs[-1:])
+            loss *= args.small_batch_size / args.batch_size
+            total_loss += raw_loss.data * args.small_batch_size / args.batch_size
+            loss.backward()
 
             s_id += 1
             start = end
@@ -300,11 +282,8 @@ def train():
             gc.collect()
 
         # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs.
-        # TODO: I COMMENTED THIS OUT!
-        if not args.diff_unrolled:
-            torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
-            optimizer.step()
-
+        torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
+        optimizer.step()
         global shared_step
         shared_step += 1
 
@@ -312,8 +291,8 @@ def train():
         optimizer.param_groups[0]['lr'] = lr2
         if batch % args.log_interval == 0 and batch > 0:
             logging.info(parallel_model.genotype())
-            # print(F.softmax(parallel_model.weights, dim=-1))
-            cur_loss = total_loss[0] / args.log_interval  #evaluate(train_data, args.batch_size) #
+            print(F.softmax(parallel_model.weights, dim=-1))
+            cur_loss = total_loss[0] / args.log_interval
             elapsed = time.time() - start_time
             log_str = '| epoch {:3d} | {:5d}/{:5d} batches | lr {:02.2f} | ms/batch {:5.2f} | ' \
                     'loss {:5.2f} | ppl {:8.2f}'.format(
@@ -352,8 +331,8 @@ for epoch in range(1, args.epochs+1):
             'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
                                        val_loss, math.exp(val_loss))
     logging.info(log_str)
-    print(log_str)
     logging.info('-' * 89)
+    print(log_str)
     tb.scalar_summary(f'train/val_ppl', math.exp(val_loss), shared_step)
 
     if val_loss < stored_loss:

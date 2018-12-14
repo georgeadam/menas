@@ -18,6 +18,37 @@ import model
 from torch.autograd import Variable
 from utils import batchify, get_batch, repackage_hidden, create_exp_dir, save_checkpoint
 
+
+import PIL
+import scipy.misc
+from io import BytesIO
+import tensorboardX as tbx
+from tensorboardX.summary import Summary
+class TensorBoard(object):
+    def __init__(self, model_dir):
+        self.summary_writer = tbx.FileWriter(model_dir)
+
+    def image_summary(self, tag, value, step):
+        for idx, img in enumerate(value):
+            summary = Summary()
+            bio = BytesIO()
+
+            if type(img) == str:
+                img = PIL.Image.open(img)
+            elif type(img) == PIL.Image.Image:
+                pass
+            else:
+                img = scipy.misc.toimage(img)
+
+            img.save(bio, format="png")
+            image_summary = Summary.Image(encoded_image_string=bio.getvalue())
+            summary.value.add(tag=f"{tag}/{idx}", image=image_summary)
+            self.summary_writer.add_summary(summary, global_step=step)
+
+    def scalar_summary(self, tag, value, step):
+        summary= Summary(value=[Summary.Value(tag=tag, simple_value=value)])
+        self.summary_writer.add_summary(summary, global_step=step)
+
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank/WikiText2 Language Model')
 parser.add_argument('--data', type=str, default='../data/penn/',
                     help='location of the data corpus')
@@ -29,7 +60,7 @@ parser.add_argument('--nhidlast', type=int, default=850,
                     help='number of hidden units for the last rnn layer')
 parser.add_argument('--lr', type=float, default=20,
                     help='initial learning rate')
-parser.add_argument('--clip', type=float, default=0.075,#25,  # TODO: Changed from 0.25
+parser.add_argument('--clip', type=float, default=0.25,  # TODO: Changed from 0.25
                     help='gradient clipping')
 parser.add_argument('--epochs', type=int, default=8000,
                     help='upper epoch limit')
@@ -57,11 +88,11 @@ parser.add_argument('--log-interval', type=int, default=200, metavar='N',
                     help='report interval')
 parser.add_argument('--save', type=str,  default='EXP',
                     help='path to save the final model')
-parser.add_argument('--alpha', type=float, default=0,#1e-3, # 0 # TODO: I added this..
+parser.add_argument('--alpha', type=float, default=0,
                     help='alpha L2 regularization on RNN activation (alpha = 0 means no regularization)')
 parser.add_argument('--beta', type=float, default=1e-3,
                     help='beta slowness regularization applied on RNN activiation (beta = 0 means no regularization)')
-parser.add_argument('--wdecay', type=float, default=8e-7, #8e-7, # TODO: I changed this
+parser.add_argument('--wdecay', type=float, default=8e-7,
                     help='weight decay applied to all weights')
 parser.add_argument('--continue_train', action='store_true',
                     help='continue train from a checkpoint')
@@ -82,6 +113,7 @@ if args.nhidlast < 0:
 if args.small_batch_size < 0:
     args.small_batch_size = args.batch_size
 
+args.save += '-' + args.arch
 if not args.continue_train:
     args.save = 'eval-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S"))
     create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
@@ -92,6 +124,8 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO,
 fh = logging.FileHandler(os.path.join(args.save, 'log.txt'))
 fh.setFormatter(logging.Formatter(log_format))
 logging.getLogger().addHandler(fh)
+
+tb = TensorBoard(args.save.split('/')[-1])
 
 # Set the random seed manually for reproducibility.
 np.random.seed(args.seed)
@@ -156,7 +190,7 @@ def evaluate(data_source, batch_size=10):
         hidden = repackage_hidden(hidden)
     return total_loss[0] / len(data_source)
 
-
+shared_step = 0
 def train():
     assert args.batch_size % args.small_batch_size == 0, 'batch_size must be divisible by small_batch_size'
 
@@ -211,6 +245,8 @@ def train():
         # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs.
         torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
         optimizer.step()
+        global shared_step
+        shared_step += 1
 
         # total_loss += raw_loss.data
         optimizer.param_groups[0]['lr'] = lr2
@@ -222,10 +258,12 @@ def train():
         if batch % args.log_interval == 0 and batch > 0:
             cur_loss = total_loss[0] / args.log_interval
             elapsed = time.time() - start_time
-            logging.info('| epoch {:3d} | {:5d}/{:5d} batches | lr {:02.2f} | ms/batch {:5.2f} | '
+            log_str = '| epoch {:3d} | {:5d}/{:5d} batches | lr {:02.2f} | ms/batch {:5.2f} | '\
                     'loss {:5.2f} | ppl {:8.2f}'.format(
                 epoch, batch, len(train_data) // args.bptt, optimizer.param_groups[0]['lr'],
-                elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss)))
+                elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss))
+            logging.info(log_str)
+            tb.scalar_summary(f'train_final/train_ppl', math.exp(cur_loss), shared_step)
             total_loss = 0
             start_time = time.time()
         batch += 1
@@ -296,10 +334,13 @@ try:
         else:
             val_loss = evaluate(val_data, eval_batch_size)
             logging.info('-' * 89)
-            logging.info('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
+            log_str = '| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | ' \
                     'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
-                                               val_loss, math.exp(val_loss)))
+                                               val_loss, math.exp(val_loss))
+            logging.info(log_str)
+            print(log_str)
             logging.info('-' * 89)
+            tb.scalar_summary(f'train_final/val_ppl', math.exp(val_loss), shared_step)
 
             if val_loss < stored_loss:
                 save_checkpoint(model, optimizer, epoch, args.save)
