@@ -62,7 +62,8 @@ def main(args):  # pylint:disable=redefined-outer-name
     perplexity_correlation_dir = os.environ.get("PERPLEXITY_DISTRIBUTION_PLOTS_DIR")
     model_dir = os.path.basename(args.model_dir)
     save_dir = os.path.join(ROOT_DIR, perplexity_correlation_dir, model_dir)
-    file_path = os.path.join(save_dir, "density.png")
+    performance_density_path = os.path.join(save_dir, "density.png")
+    num_nodes_path = os.path.join(save_dir, "num_nodes.png")
 
     train_args = utils.load_args(args.model_dir)
     train_args = DotMap(train_args)
@@ -91,16 +92,22 @@ def main(args):  # pylint:disable=redefined-outer-name
     elif train_args.train_type == "flexible":
         trnr = flexible_trainer.FlexibleTrainer(train_args, dataset)
 
-    dags = trnr.derive_many(1000)
+    dags = trnr.derive_many(100)
     ppls = []
+    num_nodes = []
 
     for i, dag in enumerate(dags):
         print(i)
         ppl = trnr.get_perplexity_multibatch(trnr.test_data, dag)
 
         ppls.append(ppl)
+        num_nodes.append(max(dag.keys()))
 
-    density_plot(ppls, train_args.train_type.capitalize(), "Test PPL", file_path)
+    density_plot(ppls, train_args.train_type.capitalize(), "Test PPL", performance_density_path)
+
+    if train_args.train_type == "flexible":
+        density_plot(num_nodes, train_args.train_type.capitalize(), "Num Nodes", num_nodes_path)
+
 
     with open(os.path.join(save_dir, "params.json"), "w") as fp:
         json.dump(train_args.toDict(), fp, indent=4, sort_keys=True)
