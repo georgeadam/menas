@@ -113,7 +113,9 @@ if args.nhidlast < 0:
 if args.small_batch_size < 0:
     args.small_batch_size = args.batch_size
 
-args.save += '-' + args.arch
+if not args.continue_train:
+    args.save += '-' + args.arch
+
 if not args.continue_train:
     args.save = 'eval-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S"))
     create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
@@ -322,6 +324,9 @@ try:
                     'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
                                                val_loss2, math.exp(val_loss2)))
             logging.info('-' * 89)
+            tb.scalar_summary(f'train_final/val_ppl', math.exp(val_loss2), shared_step)
+
+
 
             if val_loss2 < stored_loss:
                 save_checkpoint(model, optimizer, epoch, args.save)

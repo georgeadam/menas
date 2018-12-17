@@ -11,16 +11,22 @@ def grad(x, y):
     return -y, x
 
 
-def unrolled_loss(x, y, length):
+def unrolled_loss(x, y, length_x, length_y):
     dy, dx = grad(x, y)
     # (x - length*dx)*(y - length*dy) = (x - length*(-y))*(y - length*(x))
     # (x + length*(y))*(y - length*(x)) = x*y - length*x*x + length*y*y - length*length*dx*dy
-    return x*y + length*y*y - length*x*x - length*length*y*x
+    return x*y + length_y*y*y - length_x*x*x - length_y*length_x*y*x
 
 
 def unrolled_grad(x, y, length):
     dx = -(y - 2*length*x + length*length*y)
     dy = x - length*length*x + 2*length*y
+    return dx, dy
+
+def unrolled_finite_diff_grad(x, y, length):
+    finite_size = 0.1 #1.0
+    dx = -(y - (loss(x, y + finite_size) - loss(x, y - finite_size))/(2*finite_size))
+    dy = x - (-loss(x + finite_size, y) - -loss(x - finite_size, y))/(2*finite_size)
     return dx, dy
 
 
@@ -39,7 +45,7 @@ def update(x, y, length, use_extrapolate, use_unrolled):
     return step_x, step_y
 
 
-def plot_vector_field(title, use_extrapolate=False, use_alternating=False, use_unrolling=False):
+def plot_vector_field(title, use_extrapolate=False, use_alternating=False, use_unrolling=False, do_xlabel=True, do_ylabel=True):
     fig_width, fig_height = 10, 10
     fig = plt.figure(figsize=(fig_width, fig_height), facecolor='white')
 
@@ -89,11 +95,27 @@ def plot_vector_field(title, use_extrapolate=False, use_alternating=False, use_u
             #    axs[0].legend()
 
             # axs[1].plot(range(len(losses)), losses, label=label, c=colors[color_key])
-    axs[0].set(xlabel='x', ylabel='y', title='Position in game')
+    '''if do_xlabel:
+        axs[0].set(xlabel='x')
+    else:
+        axs[0].set_xticks([])
+    if do_ylabel:
+        axs[0].set(ylabel='y')
+    else:
+        axs[0].set_yticks([])'''
+    axs[0].set(xlabel='x')
+    axs[0].set_xticks([-2, 0, 2])
+    axs[0].set(ylabel='y')
+    axs[0].set_yticks([-2, 0, 2])
+    axs[0].tick_params(axis='x', which='both', bottom=False, top=False)
+    axs[0].tick_params(axis='y', which='both', left=False, right=False)
+    axs[0].grid(False)
+
+
     multiple = 1
     axs[0].set_xlim(-grid_radius * multiple, grid_radius * multiple)
     axs[0].set_ylim(-grid_radius * multiple, grid_radius * multiple)
-    fig.savefig(title + ".pdf")
+    fig.savefig(title + ".pdf", bbox_inches='tight')
     plt.close('all')
 
     # TODO: Draw vector field at each location?  Maybe a graph with lines at each x, y in a grid
@@ -104,10 +126,21 @@ def plot_vector_field(title, use_extrapolate=False, use_alternating=False, use_u
 
 # TODO: Document functions
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    # Set some parameters.
+    font = {'family': 'Times New Roman'}
+    mpl.rc('font', **font)
+    font_size = 50
+    mpl.rcParams['legend.fontsize'] = font_size
+    mpl.rcParams['axes.labelsize'] = font_size
+    mpl.rcParams['xtick.labelsize'] = font_size
+    mpl.rcParams['ytick.labelsize'] = font_size
+
     im_dir = 'images/'
-    plot_vector_field(im_dir + 'base_simultaneous')
-    plot_vector_field(im_dir + 'base_alternating', use_alternating=True)
-    plot_vector_field(im_dir + 'extrapolation_simultaneous', use_extrapolate=True)
-    plot_vector_field(im_dir + 'extrapolation_alternating', use_extrapolate=True, use_alternating=True)
-    plot_vector_field(im_dir + 'unrolled_simultaneous', use_unrolling=True)
+    plot_vector_field(im_dir + 'base_simultaneous', do_xlabel=False, do_ylabel=False)
+    plot_vector_field(im_dir + 'base_alternating', use_alternating=True, do_xlabel=False)
+    plot_vector_field(im_dir + 'extrapolation_simultaneous', use_extrapolate=True, do_xlabel=False, do_ylabel=False)
+    plot_vector_field(im_dir + 'extrapolation_alternating', use_extrapolate=True, use_alternating=True, do_xlabel=False)
+    plot_vector_field(im_dir + 'unrolled_simultaneous', use_unrolling=True, do_ylabel=False)
     plot_vector_field(im_dir + 'unrolled_alternating', use_unrolling=True, use_alternating=True)

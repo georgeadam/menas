@@ -4,7 +4,6 @@
 #SBATCH --gres=gpu:1
 #SBATCH --partition=gpu
 #SBATCH --cpus-per-task=1
-#SBATCH --time=24:00:00
 #SBATCH --mem=4GB
 #SBATCH --job-name=%A_%a
 #SBATCH --output=slurm_%A_%a.out

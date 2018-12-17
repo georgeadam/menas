@@ -4,7 +4,6 @@
 #SBATCH --gres=gpu:1
 #SBATCH --partition=gpu
 #SBATCH --cpus-per-task=1
-#SBATCH --time=24:00:00
 #SBATCH --mem=4GB
 #SBATCH --job-name=%A_%a
 #SBATCH --output=slurm_%A_%a.out
@@ -35,5 +34,5 @@ then
     python train.py --arch DARTS_1ST_ORDER
 fi
 
-# srun --partion=gpu --gres=gpu:1 --mem=4GB python train_search.py
+# srun --partion=gpu --gres=gpu:1 --mem=4GB python train.py
 # sbatch --array=0-2 srun_script.sh
