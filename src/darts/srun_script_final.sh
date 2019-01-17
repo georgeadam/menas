@@ -19,16 +19,20 @@ echo ${SLURM_ARRAY_TASK_ID}
 
 if [ "${SLURM_ARRAY_TASK_ID}" == "0" ]
 then
-    python train_search.py
+    python train.py
 elif [ "${SLURM_ARRAY_TASK_ID}" == "1" ]
 then
     sleep 2
-    python train_search.py --unrolled
+    python train.py --arch ENAS
 elif [ "${SLURM_ARRAY_TASK_ID}" == "2" ]
 then
     sleep 4
-    python train_search.py --unrolled --diff_unrolled
+    python train.py --arch OURS
+elif [ "${SLURM_ARRAY_TASK_ID}" == "3" ]
+then
+    sleep 4
+    python train.py --arch DARTS_1ST_ORDER
 fi
 
-# srun --partion=gpu --gres=gpu:1 --mem=4GB python train_search.py
+# srun --partion=gpu --gres=gpu:1 --mem=4GB python train.py
 # sbatch --array=0-2 srun_script.sh

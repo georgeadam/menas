@@ -58,9 +58,9 @@ parser.add_argument('--nhidlast', type=int, default=300,
                     help='number of hidden units for the last rnn layer')
 parser.add_argument('--lr', type=float, default=20,
                     help='initial learning rate')
-parser.add_argument('--clip', type=float, default=0.25,
+parser.add_argument('--clip', type=float, default=0.125,
                     help='gradient clipping')
-parser.add_argument('--epochs', type=int, default=50,
+parser.add_argument('--epochs', type=int, default=5000,
                     help='upper epoch limit')
 parser.add_argument('--batch_size', type=int, default=256, metavar='N',
                     help='batch size')
@@ -82,7 +82,7 @@ parser.add_argument('--nonmono', type=int, default=5,
                     help='random seed')
 parser.add_argument('--cuda', action='store_false',
                     help='use CUDA')
-parser.add_argument('--log-interval', type=int, default=50, metavar='N',
+parser.add_argument('--log-interval', type=int, default=1, metavar='N',
                     help='report interval')
 parser.add_argument('--save', type=str,  default='EXP',
                     help='path to save the final model')
@@ -109,15 +109,15 @@ parser.add_argument('--arch_wdecay', type=float, default=1e-3,
 parser.add_argument('--arch_lr', type=float, default=3e-3,
                     help='learning rate for the architecture encoding alpha')
 
-
 parser.add_argument('--diff_unrolled', action='store_true', default=False,
                     help='If we should differentiate through the unrolled model')
 
 args = parser.parse_args()
 
-'''extrapolate_text = 'Extrapolate'
-if args.extrapolate_past:
-    extrapolate_text = 'PastExtrapolate'''''
+if args.nhidlast < 0:
+    args.nhidlast = args.emsize
+if args.small_batch_size < 0:
+    args.small_batch_size = args.batch_size
 
 diff_unrolled_text = 'NoDiffUnroll'
 if args.diff_unrolled:
@@ -130,18 +130,11 @@ if args.unrolled:
 else:  # Can't diff through unrolling if no unrolling
     diff_unrolled_text = ''
     extrapolate_text = ''
-args.save += '-' + unroll_text + '-' + diff_unrolled_text #+ '-' + extrapolate_text
-
-if args.nhidlast < 0:
-    args.nhidlast = args.emsize
-if args.small_batch_size < 0:
-    args.small_batch_size = args.batch_size
+args.save += '-' + unroll_text + '-' + diff_unrolled_text  # + '-' + extrapolate_text
 
 if not args.continue_train:
     args.save = 'search-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S"))
     create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
-
-tb = TensorBoard(args.save.split('/')[-1])
 
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
@@ -149,6 +142,8 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO,
 fh = logging.FileHandler(os.path.join(args.save, 'log.txt'))
 fh.setFormatter(logging.Formatter(log_format))
 logging.getLogger().addHandler(fh)
+
+tb = TensorBoard(args.save.split('/')[-1])
 
 # Set the random seed manually for reproducibility.
 np.random.seed(args.seed)
@@ -221,7 +216,6 @@ def evaluate(data_source, batch_size=10):
 
 shared_step = 0
 def train():
-    print("Beginning training!")
     assert args.batch_size % args.small_batch_size == 0, 'batch_size must be divisible by small_batch_size'
 
     # Turn on training mode which enables dropout.
@@ -337,8 +331,8 @@ for epoch in range(1, args.epochs+1):
             'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
                                        val_loss, math.exp(val_loss))
     logging.info(log_str)
-    print(log_str)
     logging.info('-' * 89)
+    print(log_str)
     tb.scalar_summary(f'train/val_ppl', math.exp(val_loss), shared_step)
 
     if val_loss < stored_loss:

@@ -34,3 +34,8 @@ DARTS_V2 = Genotype(recurrent=[('sigmoid', 0), ('relu', 1), ('relu', 1), ('ident
 
 DARTS = DARTS_V2
 
+DARTS_1ST_ORDER = Genotype(recurrent=[('identity', 0), ('identity', 1), ('identity', 1), ('identity', 2), ('identity', 3), ('identity', 3), ('relu', 3), ('relu', 5)], concat=range(1, 9))
+
+OURS = Genotype(recurrent=[('relu', 0), ('identity', 1), ('identity', 2), ('identity', 2), ('identity', 4), ('identity', 2), ('identity', 4), ('identity', 1)], concat=range(1, 9))
+#Genotype(recurrent=[('relu', 0), ('identity', 1), ('identity', 2), ('identity', 2), ('identity', 2), ('identity', 2), ('identity', 2), ('identity', 4)], concat=range(1, 9))
+
