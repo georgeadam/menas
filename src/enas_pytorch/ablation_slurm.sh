@@ -2,7 +2,6 @@
 #SBATCH --mincpus=4
 #SBATCH --gres=gpu:1
 #SBATCH --partition=gpu
-#SBATCH --exclude=guppy3,guppy9,guppy4
 #SBATCH --mem=12G
 
 PYTHONPATH=$(pwd)
@@ -34,6 +33,9 @@ then
 elif [ "$ablation_study" == "hidden_state_naive" ]
 then
     script=analysis/hidden_state_naive_similarity.py
+elif [ "$ablation_study" == "sampled_dag_performance_distribution" ]
+then
+    script=analysis/sampled_dag_performance_distribution.py
 fi
 
 python3 $script --load_path=$load_path

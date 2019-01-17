@@ -123,8 +123,9 @@ misc_arg.add_argument('--num-workers', type=int, default=2)
 misc_arg.add_argument('--random_seed', type=int, default=12345)
 misc_arg.add_argument('--use_tensorboard', type=str2bool, default=True)
 misc_arg.add_argument("--train_type", type=str, default="ours",
-                      choices=['orig', 'ours', 'random', 'hardcoded', 'flexible'])
+                      choices=['orig', 'ours', 'random', 'hardcoded', 'flexible', 'preset'])
 misc_arg.add_argument('--use_preset_arc', type=str2bool, default=False)
+misc_arg.add_argument('--preset_dir', type=str, default='preset_architectures')
 
 
 def get_args():
@@ -147,6 +148,7 @@ def get_args():
     load_dotenv(find_dotenv(), override=True)
     d["data_dir"] = os.path.join(ROOT_DIR, args.data_dir)
     d["log_dir"] = os.path.join(ROOT_DIR, args.log_dir)
+    d["preset_architecture_dir"] = os.path.join(ROOT_DIR, args.preset_dir)
 
     if args.num_gpu > 0:
         setattr(args, 'cuda', True)

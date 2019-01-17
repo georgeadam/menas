@@ -9,7 +9,7 @@ from data.image import Image
 from data.text import Corpus
 
 from configs import config_orig as config
-from train_scripts import regular_trainer, hardcoded_trainer, random_trainer, flexible_trainer
+from train_scripts import regular_trainer, hardcoded_trainer, random_trainer, flexible_trainer, preset_trainer
 import utils as utils
 
 logger = utils.get_logger()
@@ -41,6 +41,8 @@ def main(args):  # pylint:disable=redefined-outer-name
         trnr = hardcoded_trainer.HardcodedTrainer(args, dataset)
     elif args.train_type == 'flexible':
         trnr = flexible_trainer.FlexibleTrainer(args, dataset)
+    elif args.train_type == 'preset':
+        trnr = preset_trainer.PresetTrainer(args, dataset)
 
     if args.mode == 'train':
         utils.save_args(args)
