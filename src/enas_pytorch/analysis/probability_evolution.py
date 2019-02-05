@@ -35,6 +35,8 @@ def main(args):  # pylint:disable=redefined-outer-name
     save_dir = os.path.join(ROOT_DIR, hidden_state_analysis_dir, model_dir)
     probability_density_file_path = os.path.join(save_dir, "probability_density.png")
     probability_lineplot_file_path = os.path.join(save_dir, "probability_lineplot.png")
+    probability_density_file_random_state_path = os.path.join(save_dir, "probability_density_random_state.png")
+    probability_lineplot_file_random_state_path = os.path.join(save_dir, "probability_lineplot_random_state.png")
 
 
     train_args = utils.load_args(args.model_dir)
@@ -65,12 +67,21 @@ def main(args):  # pylint:disable=redefined-outer-name
         trnr = flexible_trainer.FlexibleTrainer(train_args, dataset)
 
     dags, hiddens, probabilities = trnr.controller.sample(100, with_details=False, return_hidden=True,
+                                                          random_hidden_state=False)
+
+    density_plot(probabilities.view(-1).cpu(), train_args.train_type.capitalize(), "Probabilities",
+                 probability_density_file_path, label_stats=False)
+    line_plot(torch.arange(probabilities.shape[1]).repeat(probabilities.shape[0], 1), probabilities.cpu(),
+              train_args.train_type.capitalize(), "Time Step", "Probability", probability_lineplot_file_path)
+
+    dags, hiddens, probabilities = trnr.controller.sample(100, with_details=False, return_hidden=True,
                                                           random_hidden_state=True)
 
-    density_plot(probabilities.view(-1), train_args.train_type.capitalize(), "Probabilities",
-                 probability_density_file_path, label_stats=False)
-    line_plot(torch.arange(probabilities.shape[1]).repeat(probabilities.shape[0], 1), probabilities,
-              train_args.train_type.capitalize(), "Time Step", "Probability", probability_lineplot_file_path)
+    density_plot(probabilities.view(-1).cpu(), train_args.train_type.capitalize(), "Probabilities",
+                 probability_density_file_random_state_path, label_stats=False)
+    line_plot(torch.arange(probabilities.shape[1]).repeat(probabilities.shape[0], 1), probabilities.cpu(),
+              train_args.train_type.capitalize(), "Time Step", "Probability",
+              probability_lineplot_file_random_state_path)
 
     with open(os.path.join(save_dir, "params.json"), "w") as fp:
         json.dump(train_args.toDict(), fp, indent=4, sort_keys=True)
