@@ -123,7 +123,7 @@ misc_arg.add_argument('--num-workers', type=int, default=2)
 misc_arg.add_argument('--random_seed', type=int, default=12345)
 misc_arg.add_argument('--use_tensorboard', type=str2bool, default=True)
 misc_arg.add_argument("--train_type", type=str, default="ours",
-                      choices=['orig', 'ours', 'random', 'hardcoded', 'flexible', 'preset'])
+                      choices=['orig', 'ours', 'random', 'hardcoded', 'flexible', 'preset', 'action_regularized'])
 misc_arg.add_argument('--use_preset_arc', type=str2bool, default=False)
 misc_arg.add_argument('--preset_dir', type=str, default='preset_architectures')
 
