@@ -10,12 +10,12 @@ import torch.nn as nn
 from train_scripts.regular_trainer import Trainer, _get_no_grad_ctx_mgr, discount, TensorBoard, _get_optimizer
 from models.shared_cnn import CNN
 from models.shared_rnn import RNN
-from regularized_controllers.prev_action import PrevActionRegularizedController
+from regularized_controllers.performance import PerformanceRegularizedController
 
 logger = utils.get_logger()
 
 
-class PrevActionRegularizedTrainer(Trainer):
+class PerformanceRegularizedTrainer(Trainer):
     """A class to wrap training code."""
 
     def __init__(self, args, dataset):
@@ -108,7 +108,7 @@ class PrevActionRegularizedTrainer(Trainer):
                                       f'`{self.args.network_type}` is not '
                                       f'defined')
 
-        self.controller = PrevActionRegularizedController(self.args)
+        self.controller = PerformanceRegularizedController(self.args)
 
         if self.args.num_gpu == 1:
             self.shared.cuda()
@@ -194,8 +194,8 @@ class PrevActionRegularizedTrainer(Trainer):
         valid_idx = 0#random.randint(0, self.valid_data.size(0) - 1 - self.max_length)#0
         for step in range(self.args.controller_max_step):
             # sample models
-            dags, log_probs, entropies, mses = self.controller.sample(
-                with_details=True)
+            dags, log_probs, entropies, mses, controller_hid, _ = self.controller.sample(
+                with_details=True, return_hidden=True)
 
             # calculate reward
             np_entropies = entropies.data.cpu().numpy()
@@ -205,9 +205,14 @@ class PrevActionRegularizedTrainer(Trainer):
             with _get_no_grad_ctx_mgr():
                 rewards, hidden, ppl = self.get_reward(dags,
                                                        np_entropies,
-                                                       np_mses,
                                                        hidden,
                                                        valid_idx)
+
+            self.controller.replay_buffer["hiddens"].append(controller_hid.data)
+            self.controller.replay_buffer["performances"].append(ppl)
+
+            self.controller.replay_buffer["hiddens"] = self.controller.replay_buffer["hiddens"][-100:]
+            self.controller.replay_buffer["performances"] = self.controller.replay_buffer["performances"][-100:]
 
             # discount
             if 1 > self.args.discount > 0:
@@ -234,9 +239,8 @@ class PrevActionRegularizedTrainer(Trainer):
             if self.args.entropy_mode == 'regularizer':
                 loss -= self.args.entropy_coeff * entropies
 
-            mses = torch.cat((torch.Tensor([0.0]).cuda(), mses))
-            loss += mses
             loss = loss.sum()  # or loss.mean()
+            loss += mses.sum()
 
             # update
             self.controller_optim.zero_grad()
@@ -272,13 +276,12 @@ class PrevActionRegularizedTrainer(Trainer):
             if prev_valid_idx > valid_idx:
                 hidden = self.shared.init_hidden(self.args.batch_size)
 
-    def get_reward(self, dag, entropies, mses, hidden, valid_idx=0):
+    def get_reward(self, dag, entropies, hidden, valid_idx=0):
         """Computes the perplexity of a single sampled model on a minibatch of
         validation data.
         """
         if not isinstance(entropies, np.ndarray):
             entropies = entropies.data.cpu().numpy()
-            mses = mses.data.cpu().numpy()
 
         inputs, targets = self.get_batch(self.valid_data,
                                          valid_idx,
@@ -330,7 +333,7 @@ class PrevActionRegularizedTrainer(Trainer):
 
         logger.info(
             f'controller | epoch {self.epoch:3d} | lr {self.controller_lr:.5f} '
-            f'| R {avg_reward:.5f} | entropy {avg_entropy:.4f} | mse {avg_mse:.7f}'
+            f'| R {avg_reward:.5f} | entropy {avg_entropy:.4f} | performance_pred_mse {avg_mse:.7f}'
             f'| loss {cur_loss:.5f}')
 
         # Tensorboard
@@ -350,7 +353,7 @@ class PrevActionRegularizedTrainer(Trainer):
             self.tb.scalar_summary('controller/adv',
                                    avg_adv,
                                    self.controller_step)
-            self.tb.scalar_summary('controller/mse',
+            self.tb.scalar_summary('controller/performance_pred_mse',
                                    avg_mse,
                                    self.controller_step)
 

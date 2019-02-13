@@ -10,7 +10,7 @@ from data.text import Corpus
 
 from configs import config_orig as config
 from train_scripts import regular_trainer, hardcoded_trainer, random_trainer, flexible_trainer, preset_trainer, \
-    prev_action_regularized_trainer
+    prev_action_regularized_trainer, performance_regularized_trainer, biased_regularized_trainer
 import utils as utils
 
 logger = utils.get_logger()
@@ -34,7 +34,7 @@ def main(args):  # pylint:disable=redefined-outer-name
     else:
         raise NotImplementedError(f"{args.dataset} is not supported")
 
-    if args.train_type == 'ours' or args.train_type == 'orig':
+    if args.train_type == 'ours' or args.train_type == 'orig' or args.train_type == 'tf':
         trnr = regular_trainer.Trainer(args, dataset)
     elif args.train_type == 'random':
         trnr = random_trainer.RandomTrainer(args, dataset)
@@ -46,6 +46,10 @@ def main(args):  # pylint:disable=redefined-outer-name
         trnr = preset_trainer.PresetTrainer(args, dataset)
     elif args.train_type == 'action_regularized':
         trnr = prev_action_regularized_trainer.PrevActionRegularizedTrainer(args, dataset)
+    elif args.train_type == 'performance_regularized':
+        trnr = performance_regularized_trainer.PerformanceRegularizedTrainer(args, dataset)
+    elif args.train_type == 'biased_regularized':
+        trnr = biased_regularized_trainer.BiasedRegularizedTrainer(args, dataset)
 
     if args.mode == 'train':
         utils.save_args(args)

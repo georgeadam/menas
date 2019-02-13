@@ -10,6 +10,8 @@ from train_scripts import random_trainer
 from train_scripts import hardcoded_trainer
 from train_scripts import flexible_trainer
 from train_scripts import prev_action_regularized_trainer
+from train_scripts import performance_regularized_trainer
+from train_scripts import biased_regularized_trainer
 import utils as utils
 
 import os
@@ -68,6 +70,10 @@ def main(args):  # pylint:disable=redefined-outer-name
         trnr = flexible_trainer.FlexibleTrainer(train_args, dataset)
     elif train_args.train_type == "action_regularized":
         trnr = prev_action_regularized_trainer.PrevActionRegularizedTrainer(train_args, dataset)
+    elif train_args.train_type == "performance_regularized":
+        trnr = performance_regularized_trainer.PerformanceRegularizedTrainer(train_args, dataset)
+    elif train_args.train_type == "biased_regularized":
+        trnr = biased_regularized_trainer.BiasedRegularizedTrainer(train_args, dataset)
 
     dags, hiddens, probabilities = trnr.controller.sample(100, with_details=False, return_hidden=True,
                                                           random_hidden_state=False)

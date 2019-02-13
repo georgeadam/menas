@@ -3,6 +3,7 @@ from configs.config_ours import add_arguments as add_arguments_ours
 from configs.config_random import add_arguments as add_arguments_random
 from configs.config_hardcoded import add_arguments as add_arguments_hardcoded
 from configs.config_flexible import add_arguments as add_arguments_flexible
+from configs.config_enas_tf import add_arguments as add_arguments_tf
 from configs.helpers import add_argument_group, str2bool
 from utils import get_logger
 
@@ -123,7 +124,8 @@ misc_arg.add_argument('--num-workers', type=int, default=2)
 misc_arg.add_argument('--random_seed', type=int, default=12345)
 misc_arg.add_argument('--use_tensorboard', type=str2bool, default=True)
 misc_arg.add_argument("--train_type", type=str, default="ours",
-                      choices=['orig', 'ours', 'random', 'hardcoded', 'flexible', 'preset', 'action_regularized'])
+                      choices=['orig', 'ours', 'random', 'hardcoded', 'flexible', 'preset', 'action_regularized',
+                               'performance_regularized', 'biased_regularized', 'tf'])
 misc_arg.add_argument('--use_preset_arc', type=str2bool, default=False)
 misc_arg.add_argument('--preset_dir', type=str, default='preset_architectures')
 
@@ -140,6 +142,8 @@ def get_args():
                                 parser=parser)
     elif args.train_type == 'flexible':
         add_arguments_flexible(net_arg=net_arg, data_arg=data_arg, misc_arg=misc_arg, learn_arg=learn_arg)
+    elif args.train_type == 'tf':
+        add_arguments_tf(net_arg=net_arg, data_arg=data_arg, misc_arg=misc_arg, learn_arg=learn_arg)
 
     args, unparsed = parser.parse_known_args()
 
