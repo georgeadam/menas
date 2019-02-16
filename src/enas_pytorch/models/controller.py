@@ -245,3 +245,34 @@ class Controller(torch.nn.Module):
                 return False
 
         return True
+
+    def generate_architectures(self, batch_size=1):
+        if batch_size < 1:
+            raise Exception(f'Wrong batch_size: {batch_size} < 1')
+
+        # [B, L, H]
+        inputs = self.static_inputs[batch_size]
+        hidden = self.static_init_hidden[batch_size]
+
+        actions = []
+
+        for block_idx in range(2*(self.args.num_blocks - 1) + 1):
+            logits, hidden = self.forward(inputs,
+                                          hidden,
+                                          block_idx,
+                                          is_embed=(block_idx == 0))
+
+            probs = F.softmax(logits, dim=-1)
+            action = probs.multinomial(num_samples=1).data
+
+            # 0: function, 1: previous node
+            mode = block_idx % 2
+            inputs = utils.get_variable(
+                action[:, 0] + sum(self.num_tokens[:mode]),
+                requires_grad=False)
+
+            actions.append(action[:, 0])
+
+        actions = torch.stack(actions).transpose(0, 1)
+
+        return actions

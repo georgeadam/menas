@@ -10,7 +10,7 @@ from data.text import Corpus
 
 from configs import config_orig as config
 from train_scripts import regular_trainer, hardcoded_trainer, random_trainer, flexible_trainer, preset_trainer, \
-    prev_action_regularized_trainer, performance_regularized_trainer, biased_regularized_trainer
+    prev_action_regularized_trainer, performance_regularized_trainer, biased_regularized_trainer, supervised_trainer
 import utils as utils
 
 logger = utils.get_logger()
@@ -50,6 +50,8 @@ def main(args):  # pylint:disable=redefined-outer-name
         trnr = performance_regularized_trainer.PerformanceRegularizedTrainer(args, dataset)
     elif args.train_type == 'biased_regularized':
         trnr = biased_regularized_trainer.BiasedRegularizedTrainer(args, dataset)
+    elif args.train_type == 'supervised_regularized':
+        trnr = supervised_trainer.SupervisedTrainer(args, dataset)
 
     if args.mode == 'train':
         utils.save_args(args)
