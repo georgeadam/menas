@@ -9,6 +9,7 @@ from train_scripts import regular_trainer
 from train_scripts import random_trainer
 from train_scripts import hardcoded_trainer
 from train_scripts import flexible_trainer
+from train_scripts import supervised_trainer
 import utils as utils
 
 import os
@@ -121,6 +122,8 @@ def main(args):  # pylint:disable=redefined-outer-name
         trnr = hardcoded_trainer.HardcodedTrainer(train_args, dataset)
     elif train_args.train_type == "flexible":
         trnr = flexible_trainer.FlexibleTrainer(train_args, dataset)
+    elif train_args.train_type == "supervised_regularized":
+        trnr = supervised_trainer.SupervisedTrainer(train_args, dataset)
 
     dags, hiddens, probabilities = trnr.derive_many(500, return_hidden=True)
     cosine_similarities = {}
@@ -130,6 +133,7 @@ def main(args):  # pylint:disable=redefined-outer-name
     cosines_list = []
 
     for i in range(len(dags)):
+        print(i)
         for j in range(i + 1, len(dags)):
             if i != j:
                 cosine_sim = cosine_similarity(hiddens[i], hiddens[j]).item()

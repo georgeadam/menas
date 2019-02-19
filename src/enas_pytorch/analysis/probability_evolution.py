@@ -23,6 +23,7 @@ from dotmap import DotMap
 import json
 
 from visualization.density_plots import density_plot
+from visualization.heatmaps import heatmap
 from visualization.line_plots import line_plot
 import numpy as np
 
@@ -41,7 +42,8 @@ def main(args):  # pylint:disable=redefined-outer-name
     probability_lineplot_file_path = os.path.join(save_dir, "probability_lineplot.png")
     probability_density_file_random_state_path = os.path.join(save_dir, "probability_density_random_state.png")
     probability_lineplot_file_random_state_path = os.path.join(save_dir, "probability_lineplot_random_state.png")
-
+    heatmap_path = os.path.join(save_dir, "hidden_state_heatmap.png")
+    heatmap_random_state_path = os.path.join(save_dir, "hidden_state_random_heatmap.png")
 
     train_args = utils.load_args(args.model_dir)
     train_args = DotMap(train_args)
@@ -85,6 +87,7 @@ def main(args):  # pylint:disable=redefined-outer-name
                  probability_density_file_path, label_stats=False)
     line_plot(torch.arange(probabilities.shape[1]).repeat(probabilities.shape[0], 1), probabilities.cpu(),
               train_args.train_type.capitalize(), "Time Step", "Probability", probability_lineplot_file_path)
+    heatmap(hiddens.data.cpu().numpy(), "Final Hidden State", heatmap_path)
 
     dags, hiddens, probabilities = trnr.controller.sample(100, with_details=False, return_hidden=True,
                                                           random_hidden_state=True)
@@ -94,6 +97,7 @@ def main(args):  # pylint:disable=redefined-outer-name
     line_plot(torch.arange(probabilities.shape[1]).repeat(probabilities.shape[0], 1), probabilities.cpu(),
               train_args.train_type.capitalize(), "Time Step", "Probability",
               probability_lineplot_file_random_state_path)
+    heatmap(hiddens.data.cpu().numpy(), "Final Hidden State", heatmap_random_state_path)
 
     with open(os.path.join(save_dir, "params.json"), "w") as fp:
         json.dump(train_args.toDict(), fp, indent=4, sort_keys=True)

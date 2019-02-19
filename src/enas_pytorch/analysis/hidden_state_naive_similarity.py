@@ -9,6 +9,7 @@ from train_scripts import regular_trainer
 from train_scripts import random_trainer
 from train_scripts import hardcoded_trainer
 from train_scripts import flexible_trainer
+from train_scripts import supervised_trainer
 import utils as utils
 
 from network_construction.utils import Node
@@ -130,6 +131,8 @@ def main(args):  # pylint:disable=redefined-outer-name
         trnr = hardcoded_trainer.HardcodedTrainer(train_args, dataset)
     elif train_args.train_type == "flexible":
         trnr = flexible_trainer.FlexibleTrainer(train_args, dataset)
+    elif train_args.train_type == "supervised_regularized":
+        trnr = supervised_trainer.SupervisedTrainer(train_args, dataset)
 
     dags, hiddens, probabilities = trnr.derive_many(100, return_hidden=True)
     common = {}
@@ -145,6 +148,7 @@ def main(args):  # pylint:disable=redefined-outer-name
     edit_distances_list = []
 
     for i in range(len(dags)):
+        print(i)
         for j in range(i + 1, len(dags)):
             if i != j:
                 common_activations, common_connections = count_common_attributes(dags[i], dags[j])

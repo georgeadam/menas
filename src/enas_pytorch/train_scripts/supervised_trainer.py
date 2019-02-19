@@ -161,13 +161,18 @@ class SupervisedTrainer(Trainer):
         hidden = self.shared.init_hidden(self.args.batch_size)
         total_loss = 0
         valid_idx = 0#random.randint(0, self.valid_data.size(0) - 1 - self.max_length)#0
+
+        if self.epoch >= self.args.controller_supervised_store_epoch:
+            architectures = self.controller.generate_architectures(1000)
+            self.controller.store_architectures(architectures)
+
         for step in range(self.args.controller_max_step):
             # sample models
             dags, log_probs, entropies = self.controller.sample(
                 with_details=True)
 
-            architectures = self.controller.generate_architectures(1000)
-            supervised_loss = self.controller.predict_architectures(architectures)
+            if self.epoch >= self.args.controller_supervised_train_epoch:
+                supervised_loss = self.controller.predict_architectures(self.controller.architectures)
 
             # calculate reward
             np_entropies = entropies.data.cpu().numpy()
@@ -204,7 +209,9 @@ class SupervisedTrainer(Trainer):
                 loss -= self.args.entropy_coeff * entropies
 
             loss = loss.sum()  # or loss.mean()
-            loss += supervised_loss
+
+            if self.epoch >= self.args.controller_supervised_train_epoch:
+                loss += supervised_loss
 
             # update
             self.controller_optim.zero_grad()

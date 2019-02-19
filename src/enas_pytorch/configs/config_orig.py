@@ -92,6 +92,10 @@ learn_arg.add_argument('--controller_lr_max', type=float, default=0.05,
 learn_arg.add_argument('--controller_lr_min', type=float, default=0.001,
                        help="lr min for cosine schedule")
 learn_arg.add_argument('--controller_grad_clip', type=float, default=0)
+learn_arg.add_argument('--controller_supervised_train_epoch', type=float, default=10,
+                       help='which epoch to begin adding on supervised reconstruction penalty')
+learn_arg.add_argument('--controller_supervised_store_epoch', type=float, default=5,
+                       help='which epoch to begin generating architectures that will be used for reconstruction penalty')
 learn_arg.add_argument('--tanh_c', type=float, default=2.5)
 learn_arg.add_argument('--softmax_temperature', type=float, default=5.0)
 learn_arg.add_argument('--entropy_coeff', type=float, default=1e-4)
