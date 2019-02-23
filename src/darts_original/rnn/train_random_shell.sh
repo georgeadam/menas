@@ -10,4 +10,4 @@ export PYTHONPATH
 
 source /h/alexadam/anaconda3/bin/activate pt3
 
-python3 train.py --train-random --seed=$seed
+python3 train.py --train-random --seed=$seed --save=EXP-random-arc

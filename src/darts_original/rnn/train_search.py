@@ -160,6 +160,14 @@ def evaluate(data_source, batch_size=10):
         log_prob, hidden = parallel_model(data, hidden)
         loss = nn.functional.nll_loss(log_prob.view(-1, log_prob.size(2)), targets).data
 
+        # This gets us the average loss per sequence. len(data) = 35, yet the nll_loss, if you don't perform a mean
+        # has 350 elements in it, so when the mean is performed, the sum is divided by 350, not 35. Thus,
+        # multiplying loss by 35 corresponds to the sum of the loss divided by 10 (1/350 * 35 = 1/10), which is
+        # the average loss per sequence rather than per token which is what we get without multiplying by len(data).
+        # We have 10 (batch size) many sequences in data which has shape [bptt_len, batch_size], i.e. 10 columns.
+        # Furthermore, the artefact that the validation ppl always seems to be 10 times larger than the train ppl
+        # is just a coincidence and doesn't reflect any error in the ppl computation. This factor of 10 would have to
+        # be present in the loss, not ppl, in order for it to be fishy, but it isn't.
         total_loss += loss * len(data)
 
         hidden = repackage_hidden(hidden)

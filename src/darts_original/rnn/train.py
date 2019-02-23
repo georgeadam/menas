@@ -76,7 +76,7 @@ parser.add_argument('--single_gpu', default=True, action='store_false',
                     help='use single GPU')
 parser.add_argument('--gpu', type=int, default=0, help='GPU device to use')
 parser.add_argument('--arch', type=str, default='DARTS', help='which architecture to use')
-parser.add_argument("--train-random", default=True, action="store_true", help="If we are sampling a random " \
+parser.add_argument("--train-random", default=False, action="store_true", help="If we are sampling a random " \
                                                                              "architecture instead of prespecifying one")
 args = parser.parse_args()
 
