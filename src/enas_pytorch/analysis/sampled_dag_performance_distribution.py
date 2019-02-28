@@ -92,13 +92,13 @@ def main(args):  # pylint:disable=redefined-outer-name
     elif train_args.train_type == "flexible":
         trnr = flexible_trainer.FlexibleTrainer(train_args, dataset)
 
-    dags = trnr.derive_many(100)
+    dags = trnr.derive_many(1000)
     ppls = []
     num_nodes = []
 
     for i, dag in enumerate(dags):
         print(i)
-        ppl = trnr.get_perplexity_multibatch(trnr.test_data, dag)
+        ppl = trnr.get_perplexity_multibatch(trnr.valid_data, dag)
 
         ppls.append(ppl)
         num_nodes.append(max(dag.keys()))

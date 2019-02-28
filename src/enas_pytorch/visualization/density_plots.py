@@ -16,7 +16,7 @@ def density_plot(values, title, x_label, save_path, label_stats=True):
     fig = plt.figure()
 
     ax = fig.add_subplot(111)
-    ax.set_xlabel(x_label)
+    # ax.set_xlabel(x_label)
     sns.distplot(values, ax=ax)
 
     if label_stats:
@@ -28,5 +28,5 @@ def density_plot(values, title, x_label, save_path, label_stats=True):
                 verticalalignment="top",
                 transform=ax.transAxes)
 
-    fig.suptitle(title)
+    # fig.suptitle(title)
     fig.savefig(save_path)

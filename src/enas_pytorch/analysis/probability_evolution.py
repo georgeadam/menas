@@ -13,6 +13,7 @@ from train_scripts import prev_action_regularized_trainer
 from train_scripts import performance_regularized_trainer
 from train_scripts import biased_regularized_trainer
 from train_scripts import supervised_trainer
+from train_scripts import tied_weights_trainer
 import utils as utils
 
 import os
@@ -24,7 +25,7 @@ import json
 
 from visualization.density_plots import density_plot
 from visualization.heatmaps import heatmap
-from visualization.line_plots import line_plot
+from visualization.line_plots import line_plot, entropy_plot
 import numpy as np
 
 
@@ -39,11 +40,12 @@ def main(args):  # pylint:disable=redefined-outer-name
     model_dir = os.path.basename(args.model_dir)
     save_dir = os.path.join(ROOT_DIR, hidden_state_analysis_dir, model_dir)
     probability_density_file_path = os.path.join(save_dir, "probability_density.png")
-    probability_lineplot_file_path = os.path.join(save_dir, "probability_lineplot.png")
+    probability_lineplot_file_path = os.path.join(save_dir, "probability_lineplot.pdf")
     probability_density_file_random_state_path = os.path.join(save_dir, "probability_density_random_state.png")
-    probability_lineplot_file_random_state_path = os.path.join(save_dir, "probability_lineplot_random_state.png")
+    probability_lineplot_file_random_state_path = os.path.join(save_dir, "probability_lineplot_random_state.pdf")
     heatmap_path = os.path.join(save_dir, "hidden_state_heatmap.png")
     heatmap_random_state_path = os.path.join(save_dir, "hidden_state_random_heatmap.png")
+    entropy_lineplot_file_path = os.path.join(save_dir, "entropy_linepot.pdf")
 
     train_args = utils.load_args(args.model_dir)
     train_args = DotMap(train_args)
@@ -79,18 +81,26 @@ def main(args):  # pylint:disable=redefined-outer-name
         trnr = biased_regularized_trainer.BiasedRegularizedTrainer(train_args, dataset)
     elif train_args.train_type == "supervised_regularized":
         trnr = supervised_trainer.SupervisedTrainer(train_args, dataset)
+    elif train_args.train_type == "tied_weights_regularized":
+        trnr = tied_weights_trainer.TiedWeightsTrainer(train_args, dataset)
 
-    dags, hiddens, probabilities = trnr.controller.sample(100, with_details=False, return_hidden=True,
-                                                          random_hidden_state=False)
+    dags, log_probs, entropies, hiddens, probabilities = trnr.controller.sample(100, with_details=True,
+                                                                                return_hidden=True,
+                                                                                random_hidden_state=False)
+    entropies = entropies.view(100, 23).detach().cpu().numpy()
 
     density_plot(probabilities.view(-1).cpu(), train_args.train_type.capitalize(), "Probabilities",
                  probability_density_file_path, label_stats=False)
     line_plot(torch.arange(probabilities.shape[1]).repeat(probabilities.shape[0], 1), probabilities.cpu(),
               train_args.train_type.capitalize(), "Time Step", "Probability", probability_lineplot_file_path)
+    entropy_plot(np.arange(entropies.shape[1]), np.mean(entropies, axis=0),
+                 np.std(entropies, axis=0), entropy_lineplot_file_path)
     heatmap(hiddens.data.cpu().numpy(), "Final Hidden State", heatmap_path)
 
-    dags, hiddens, probabilities = trnr.controller.sample(100, with_details=False, return_hidden=True,
-                                                          random_hidden_state=True)
+    dags, log_probs, entropies, hiddens, probabilities = trnr.controller.sample(100, with_details=True,
+                                                                                return_hidden=True,
+                                                                                random_hidden_state=True)
+    entropies = entropies.view(100, 23).detach()
 
     density_plot(probabilities.view(-1).cpu(), train_args.train_type.capitalize(), "Probabilities",
                  probability_density_file_random_state_path, label_stats=False)
